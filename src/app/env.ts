@@ -1,78 +1,95 @@
-import { z } from 'zod';
+import { Type, Static } from '@sinclair/typebox';
+import { Value } from '@sinclair/typebox/value';
 import * as dotenv from 'dotenv';
 import * as dotenvExpand from 'dotenv-expand';
 
 const envConfig = dotenv.config();
 dotenvExpand.expand(envConfig);
 
-const envSchema = z.object({
-  NODE_ENV: z
-    .enum(['development', 'production', 'test'])
-    .default('development'),
-  PORT: z.coerce.number().default(4000),
-  APP_NAME: z.string().default('fastify-boilerplate'),
-  APP_KEY: z.string().default('secret'),
-  APP_URL: z.string().default('http://localhost:4000'),
-  CLIENT_APP_URL: z.string().default('http://localhost:3000'),
-  SESSION_SECRET: z.string().default('secret'),
-  JWT_SECRET: z.string().default('secret'),
-  JWT_EXPIRY: z.coerce.number().default(86400000), // in ms or string
-  BETTER_AUTH_SECRET: z
-    .string()
-    .default('better-auth-secret-key-1234567890abcdef'),
-  BETTER_AUTH_URL: z.string().default('http://localhost:4000'),
+const envSchema = Type.Object({
+  NODE_ENV: Type.Union(
+    [
+      Type.Literal('development'),
+      Type.Literal('production'),
+      Type.Literal('test'),
+    ],
+    { default: 'development' },
+  ),
+  PORT: Type.Number({ default: 4000 }),
+  APP_NAME: Type.String({ default: 'fastify-boilerplate' }),
+  APP_KEY: Type.String({ default: 'secret' }),
+  APP_URL: Type.String({ default: 'http://localhost:4000' }),
+  CLIENT_APP_URL: Type.String({ default: 'http://localhost:3000' }),
+  SESSION_SECRET: Type.String({ default: 'secret' }),
+  JWT_SECRET: Type.String({ default: 'secret' }),
+  JWT_EXPIRY: Type.Number({ default: 86400000 }),
+  BETTER_AUTH_SECRET: Type.String({
+    default: 'better-auth-secret-key-1234567890abcdef',
+  }),
+  BETTER_AUTH_URL: Type.String({ default: 'http://localhost:4000' }),
 
-  DATABASE_URL: z.string(),
+  DATABASE_URL: Type.String(),
 
-  REDIS_HOST: z.string().default('127.0.0.1'),
-  REDIS_PORT: z.coerce.number().default(6379),
-  REDIS_PASSWORD: z.string().optional(),
+  REDIS_HOST: Type.String({ default: '127.0.0.1' }),
+  REDIS_PORT: Type.Number({ default: 6379 }),
+  REDIS_PASSWORD: Type.Optional(Type.String()),
 
-  MAIL_HOST: z.string().default('smtp.gmail.com'),
-  MAIL_PORT: z.coerce.number().default(587),
-  MAIL_USERNAME: z.string().optional(),
-  MAIL_PASSWORD: z.string().optional(),
-  MAIL_FROM_ADDRESS: z.string().default('noreply@example.com'),
-  MAIL_FROM_NAME: z.string().default('Fastify-App'),
+  MAIL_HOST: Type.String({ default: 'smtp.gmail.com' }),
+  MAIL_PORT: Type.Number({ default: 587 }),
+  MAIL_USERNAME: Type.Optional(Type.String()),
+  MAIL_PASSWORD: Type.Optional(Type.String()),
+  MAIL_FROM_ADDRESS: Type.String({ default: 'noreply@example.com' }),
+  MAIL_FROM_NAME: Type.String({ default: 'Fastify-App' }),
 
-  GOOGLE_APP_ID: z.string().optional(),
-  GOOGLE_APP_SECRET: z.string().optional(),
-  GOOGLE_CALLBACK_URL: z.string().optional(),
+  GOOGLE_APP_ID: Type.Optional(Type.String()),
+  GOOGLE_APP_SECRET: Type.Optional(Type.String()),
+  GOOGLE_CALLBACK_URL: Type.Optional(Type.String()),
 
   // Storage
-  STORAGE_DRIVER: z.enum(['local', 's3']).default('local'),
+  STORAGE_DRIVER: Type.Union([Type.Literal('local'), Type.Literal('s3')], {
+    default: 'local',
+  }),
 
-  AWS_ACCESS_KEY_ID: z.string().optional(),
-  AWS_SECRET_ACCESS_KEY: z.string().optional(),
-  AWS_DEFAULT_REGION: z.string().optional(),
-  AWS_BUCKET: z.string().optional(),
-  AWS_URL: z.string().optional(),
-  AWS_ENDPOINT: z.string().optional(),
+  AWS_ACCESS_KEY_ID: Type.Optional(Type.String()),
+  AWS_SECRET_ACCESS_KEY: Type.Optional(Type.String()),
+  AWS_DEFAULT_REGION: Type.Optional(Type.String()),
+  AWS_BUCKET: Type.Optional(Type.String()),
+  AWS_URL: Type.Optional(Type.String()),
+  AWS_ENDPOINT: Type.Optional(Type.String()),
 
-  GCP_PROJECT_ID: z.string().optional(),
-  GCP_KEY_FILE: z.string().optional(),
-  GCP_API_ENDPOINT: z.string().optional(),
-  GCP_BUCKET: z.string().optional(),
+  GCP_PROJECT_ID: Type.Optional(Type.String()),
+  GCP_KEY_FILE: Type.Optional(Type.String()),
+  GCP_API_ENDPOINT: Type.Optional(Type.String()),
+  GCP_BUCKET: Type.Optional(Type.String()),
 
-  STRIPE_SECRET_KEY: z.string().optional(),
-  STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  STRIPE_SECRET_KEY: Type.Optional(Type.String()),
+  STRIPE_WEBHOOK_SECRET: Type.Optional(Type.String()),
 
-  PAYPAL_CLIENT_ID: z.string().optional(),
-  PAYPAL_SECRET: z.string().optional(),
-  PAYPAL_API: z.string().optional(),
+  PAYPAL_CLIENT_ID: Type.Optional(Type.String()),
+  PAYPAL_SECRET: Type.Optional(Type.String()),
+  PAYPAL_API: Type.Optional(Type.String()),
 
-  SYSTEM_USERNAME: z.string().default('admin'),
-  SYSTEM_EMAIL: z.string().default('admin@example.com'),
-  SYSTEM_PASSWORD: z.string().default('12356'),
+  SYSTEM_USERNAME: Type.String({ default: 'admin' }),
+  SYSTEM_EMAIL: Type.String({ default: 'admin@example.com' }),
+  SYSTEM_PASSWORD: Type.String({ default: '12356' }),
 });
 
-const parsed = envSchema.safeParse(process.env);
+const rawEnv = { ...process.env };
+Value.Default(envSchema, rawEnv);
+Value.Convert(envSchema, rawEnv);
 
-if (!parsed.success) {
-  console.error('❌ Invalid environment variables:', parsed.error.format());
+if (!Value.Check(envSchema, rawEnv)) {
+  const errors = [];
+  const iterator = Value.Errors(envSchema, rawEnv)[Symbol.iterator]();
+  let next = iterator.next();
+  while (!next.done) {
+    errors.push(next.value);
+    next = iterator.next();
+  }
+  console.error('❌ Invalid environment variables:', errors);
   process.exit(1);
 }
 
-export const env = parsed.data;
+export const env = rawEnv as Static<typeof envSchema>;
 export default env;
-export type Env = z.infer<typeof envSchema>;
+export type Env = Static<typeof envSchema>;

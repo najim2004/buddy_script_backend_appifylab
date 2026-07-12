@@ -25,7 +25,7 @@ declare module 'fastify' {
   }
 }
 
-const jwtPlugin: FastifyPluginAsync = fp(async (fastify) => {
+const authPlugin: FastifyPluginAsync = fp(async (fastify) => {
   fastify.decorate(
     'authenticate',
     async (request: FastifyRequest, _reply: FastifyReply): Promise<void> => {
@@ -46,4 +46,4 @@ const jwtPlugin: FastifyPluginAsync = fp(async (fastify) => {
   );
 });
 
-export default jwtPlugin;
+export default authPlugin;

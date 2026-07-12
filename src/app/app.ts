@@ -7,7 +7,7 @@ import sensible from '@fastify/sensible';
 
 import prismaPlugin from '../plugins/prisma.plugin';
 import redisPlugin from '../plugins/redis.plugin';
-import jwtPlugin from '../plugins/jwt.plugin';
+import authPlugin from '../plugins/auth.plugin';
 import swaggerPlugin from '../plugins/swagger.plugin';
 import socketPlugin from '../plugins/socket.plugin';
 import stripePlugin from '../plugins/stripe.plugin';
@@ -66,7 +66,7 @@ export const createApp = async (): Promise<FastifyInstance> => {
 
   await app.register(prismaPlugin);
   await app.register(redisPlugin);
-  await app.register(jwtPlugin);
+  await app.register(authPlugin);
   await app.register(swaggerPlugin);
   await app.register(socketPlugin);
   await app.register(stripePlugin);

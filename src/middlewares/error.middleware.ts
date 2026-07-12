@@ -1,5 +1,4 @@
 import { FastifyError, FastifyReply, FastifyRequest } from 'fastify';
-import { ZodError } from 'zod';
 import { AppError } from '../core/errors/app.error';
 
 /**
@@ -7,9 +6,8 @@ import { AppError } from '../core/errors/app.error';
  *
  * Handles three categories of errors:
  *  1. `AppError` subclasses — operational errors with a known HTTP status
- *  2. `ZodError`           — validation failures from zod schemas
- *  3. `FastifyError`       — framework-level errors (route not found, etc.)
- *  4. Unknown errors       — unexpected programming bugs (logged, 500 returned)
+ *  2. `FastifyError`       — framework-level errors (route not found, validation, etc.)
+ *  3. Unknown errors       — unexpected programming bugs (logged, 500 returned)
  */
 export const errorMiddleware = (
   error: FastifyError | Error,
@@ -33,24 +31,8 @@ export const errorMiddleware = (
   }
 
   // ---------------------------------------------------------------------------
-  // 2. Zod validation errors — 422 Unprocessable Entity
+  // 2. Validation errors (TypeBox / Fastify native) are handled below in generic FastifyError
   // ---------------------------------------------------------------------------
-  if (error instanceof ZodError) {
-    request.log.warn({ issues: error.issues }, 'Validation error');
-    reply.status(422).send({
-      success: false,
-      code: 'VALIDATION_ERROR',
-      message: 'Validation failed',
-      errors: error.issues.map((issue) => ({
-        field: issue.path.join('.'),
-        message: issue.message,
-      })),
-    });
-    return;
-  }
-
-  // ---------------------------------------------------------------------------
-  // 3. Fastify framework errors (404, 405, rate-limit, etc.)
   // ---------------------------------------------------------------------------
   const fastifyError = error as FastifyError;
   if (fastifyError.statusCode) {

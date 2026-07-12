@@ -1,33 +1,47 @@
 import { FastifyInstance } from 'fastify';
-import { fromNodeHeaders } from 'better-auth/node';
-import auth from '../../infrastructure/auth/better-auth';
 import authController from './auth.controller';
 import { SWAGGER_TAGS } from '../../docs/swagger';
+import { signUpSchema, signInSchema } from './auth.schema';
+import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
+import { fromNodeHeaders } from 'better-auth/node';
+import auth from '../../infrastructure/auth/better-auth';
 
-/**
- * Auth module routes.
- *
- * Better Auth's built-in routes (sign-up, sign-in, sign-out, session,
- * email verification, 2FA, etc.) are served by the `/*` catch-all which
- * delegates directly to Better Auth's request handler.
- *
- * Custom routes are added only when we need data from our own database
- * that Better Auth doesn't manage (e.g. user profile fields).
- *
- * Better Auth route reference:
- *   POST /api/auth/sign-up/email          — register with email + password
- *   POST /api/auth/sign-in/email          — login with email + password
- *   POST /api/auth/sign-out               — logout (invalidates session)
- *   GET  /api/auth/session                — get current session info
- *   GET  /api/auth/verify-email?token=    — email verification
- *   POST /api/auth/two-factor/enable      — enable 2FA (TOTP)
- *   POST /api/auth/two-factor/verify-totp — verify TOTP code
- */
 export const authRoute = async (fastify: FastifyInstance): Promise<void> => {
-  // ---------------------------------------------------------------------------
-  // Custom routes — our own user data beyond what Better Auth exposes
-  // ---------------------------------------------------------------------------
+  const typedFastify = fastify.withTypeProvider<TypeBoxTypeProvider>();
 
+  // ---------------------------------------------------------------------------
+  // POST /api/auth/sign-up - Register with email and password
+  // ---------------------------------------------------------------------------
+  typedFastify.post(
+    '/sign-up',
+    {
+      schema: {
+        tags: [SWAGGER_TAGS.AUTH],
+        summary: 'Register with email and password',
+        body: signUpSchema,
+      },
+    },
+    authController.signUp.bind(authController),
+  );
+
+  // ---------------------------------------------------------------------------
+  // POST /api/auth/sign-in - Login with email and password
+  // ---------------------------------------------------------------------------
+  typedFastify.post(
+    '/sign-in',
+    {
+      schema: {
+        tags: [SWAGGER_TAGS.AUTH],
+        summary: 'Login with email and password',
+        body: signInSchema,
+      },
+    },
+    authController.signIn.bind(authController),
+  );
+
+  // ---------------------------------------------------------------------------
+  // GET /api/auth/me - Get authenticated user profile
+  // ---------------------------------------------------------------------------
   fastify.get(
     '/me',
     {

@@ -29,6 +29,14 @@ export const auth = betterAuth({
       createdAt: 'created_at',
       updatedAt: 'updated_at',
     },
+    additionalFields: {
+      first_name: {
+        type: 'string',
+      },
+      last_name: {
+        type: 'string',
+      },
+    },
   },
 
   session: {

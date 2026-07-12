@@ -11,7 +11,7 @@ import type { AuthUserPayload } from '../modules/auth/auth.types';
  * the authenticated user payload to `request.user`.
  *
  * NOTE: In Fastify the preferred pattern is to use preHandler hooks.
- * Consider using `fastify.authenticate` (registered by jwt.plugin) or
+ * Consider using `fastify.authenticate` (registered by auth.plugin) or
  * `authHook` (src/hooks/auth.hook.ts) instead for route-level auth.
  *
  * This middleware exists for compatibility with middleware-based patterns
