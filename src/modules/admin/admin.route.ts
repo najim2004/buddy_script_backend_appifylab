@@ -19,6 +19,7 @@ export const adminRoute = async (fastify: FastifyInstance): Promise<void> => {
     {
       preHandler: [fastify.authenticate],
       schema: {
+        hide: true,
         tags: [SWAGGER_TAGS.ADMIN],
         summary: 'Admin dashboard — health check',
         security: [{ bearerAuth: [] }],

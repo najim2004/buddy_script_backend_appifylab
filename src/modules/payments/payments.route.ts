@@ -17,6 +17,7 @@ export const paymentsRoute = async (
     {
       preHandler: [fastify.authenticate],
       schema: {
+        hide: true,
         tags: [SWAGGER_TAGS.PAYMENTS],
         summary: 'List payment transactions',
         security: [{ bearerAuth: [] }],

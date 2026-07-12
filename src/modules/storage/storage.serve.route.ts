@@ -153,6 +153,7 @@ export const storageServeRoute = async (
     '/serve',
     {
       schema: {
+        hide: true,
         tags: [SWAGGER_TAGS.FILES],
         summary: 'Serve a signed storage file',
         description:

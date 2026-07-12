@@ -2,17 +2,13 @@
 // Docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider     = "prisma-client"
-  output       = "./generated"
+  provider = "prisma-client"
+  output   = "./generated"
 }
 
 datasource db {
   provider = "postgresql"
 }
-
-// =============================================================================
-// ENUMS
-// =============================================================================
 
 enum MessageStatus {
   PENDING
@@ -21,10 +17,6 @@ enum MessageStatus {
   READ
 }
 
-// =============================================================================
-// AUTH MODELS  (fields and model names mapped to Better Auth's expectations)
-// =============================================================================
-
 model User {
   id         String    @id @default(cuid())
   created_at DateTime  @default(now())
@@ -32,17 +24,15 @@ model User {
   deleted_at DateTime?
   status     Int?      @default(1) @db.SmallInt
 
-  // Identity
   email      String? @unique
   username   String? @unique
   name       String? @db.VarChar(255)
   first_name String? @db.VarChar(255)
   last_name  String? @db.VarChar(255)
-  password   String? @db.VarChar(255) // used for direct admin seeding only
+  password   String? @db.VarChar(255)
   domain     String? @unique
-  avatar     String? // Better Auth maps `image` → `avatar`
+  avatar     String?
 
-  // Contact / profile
   phone_number  String?
   country       String?
   state         String?
@@ -54,25 +44,19 @@ model User {
   availability  String?
   approved_at   DateTime?
 
-  // Business
-  billing_id String? // e.g. Stripe customer ID
+  billing_id String?
   type       String? @default("user")
 
-  // Better Auth fields
-  email_verified     Boolean  @default(false) // BA maps `emailVerified` → `email_verified`
-  two_factor_enabled Boolean? @default(false) // BA maps `twoFactorEnabled` → `two_factor_enabled`
+  email_verified     Boolean  @default(false)
+  two_factor_enabled Boolean? @default(false)
 
-  // Relations — auth
   sessions   Session[]
   accounts   Account[]
   twofactors TwoFactor[]
 
-  // Relations — authorization
   roles      Role[]
   role_users RoleUser[]
 
-  // Relations — app
-  ucodes                    Ucode[]
   creator_conversations     Conversation[]       @relation("creator")
   participant_conversations Conversation[]       @relation("participant")
   sender_messages           Message[]            @relation("sender")
@@ -82,6 +66,11 @@ model User {
   user_payment_methods      UserPaymentMethod[]
   payment_transactions      PaymentTransaction[]
   user_settings             UserSetting[]
+  posts                     Post[]
+  likes                     Like[]
+  comments                  Comment[]
+  allowed_friends_posts     Post[]               @relation("VisibilityAllowedFriends")
+  comments_replied_to       Comment[]            @relation("CommentReplyToUser")
 
   @@map("users")
 }
@@ -94,7 +83,6 @@ model Account {
   user_id String
   user    User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
-  // OAuth / provider fields
   type                String?
   provider            String?
   provider_account_id String?
@@ -106,9 +94,8 @@ model Account {
   id_token            String?
   session_state       String?
 
-  // Better Auth extra fields
   refresh_token_expires_at DateTime?
-  password                 String? // hashed password managed by Better Auth
+  password                 String?
 
   @@unique([provider, provider_account_id])
   @@index([user_id])
@@ -157,9 +144,112 @@ model TwoFactor {
   @@map("two_factors")
 }
 
-// =============================================================================
-// AUTHORIZATION MODELS
-// =============================================================================
+enum AttachmentType {
+  IMAGE
+  DOCUMENT
+  VIDEO
+  AUDIO
+  FILE
+}
+
+model Attachment {
+  id         String   @id @default(cuid())
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  type       AttachmentType?
+  file_path  String
+  file_name  String?
+  mime_type  String?
+  size_bytes BigInt?
+
+  post_id  String?
+  post     Post?     @relation(fields: [post_id], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  @@map("attachments")
+}
+
+enum PostVisibility {
+  PUBLIC
+  PRIVATE
+  FRIENDS
+}
+
+enum PostStatus {
+  ACTIVE
+  INACTIVE
+  FLAGGED
+}
+
+enum PostType {
+  NORMAL
+  EVENT
+  ARTICLE
+}
+
+model Post {
+  id         String   @id @default(cuid())
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  author_id String
+  content   String?
+
+  attachments Attachment[]
+  visibility  PostVisibility @default(PUBLIC)
+  status      PostStatus     @default(ACTIVE)
+  post_type   PostType       @default(NORMAL)
+
+  comments        Comment[]
+  likes           Like[]
+  author          User      @relation(fields: [author_id], references: [id], onDelete: Cascade)
+  allowed_friends User[]    @relation("VisibilityAllowedFriends")
+
+  @@index([author_id])
+  @@map("community_posts")
+}
+
+model Like {
+  id         String   @id @default(cuid())
+  created_at DateTime @default(now())
+
+  user_id    String
+  post_id    String?
+  comment_id String?
+
+  user    User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  post    Post?    @relation(fields: [post_id], references: [id], onDelete: Cascade)
+  comment Comment? @relation(fields: [comment_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id, post_id], map: "community_likes_user_post_idx")
+  @@map("community_likes")
+}
+
+model Comment {
+  id         String    @id @default(cuid())
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+
+  post_id String
+  user_id String
+
+  content String
+
+  parent_id        String?
+  reply_to_user_id String?
+
+  likes         Like[]
+  replies       Comment[] @relation("CommentReplies")
+  user          User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  post          Post      @relation(fields: [post_id], references: [id], onDelete: Cascade)
+  parent        Comment?  @relation("CommentReplies", fields: [parent_id], references: [id], onDelete: Restrict)
+  reply_to_user User?     @relation("CommentReplyToUser", fields: [reply_to_user_id], references: [id], onDelete: SetNull)
+
+  @@index([user_id, post_id, deleted_at], map: "comment_user_post_deleted_at_idx")
+  @@map("community_comments")
+}
 
 model Role {
   id         String    @id @default(cuid())
@@ -229,33 +319,6 @@ model RoleUser {
   @@map("role_users")
 }
 
-// =============================================================================
-// CORE / UTILITY MODELS
-// =============================================================================
-
-model Ucode {
-  id         String   @id @default(cuid())
-  created_at DateTime @default(now())
-  updated_at DateTime @default(now()) @updatedAt
-  status     Int?     @default(1) @db.SmallInt
-
-  user_id String?
-  user    User?   @relation(fields: [user_id], references: [id])
-
-  token      String?
-  email      String?
-  expired_at DateTime?
-
-  @@index([user_id])
-  @@index([email])
-  @@index([token])
-  @@map("ucodes")
-}
-
-// =============================================================================
-// COMMUNICATION MODELS
-// =============================================================================
-
 model Conversation {
   id         String    @id @default(cuid())
   created_at DateTime  @default(now())
@@ -302,23 +365,6 @@ model Message {
   @@map("messages")
 }
 
-model Attachment {
-  id         String    @id @default(cuid())
-  created_at DateTime  @default(now())
-  updated_at DateTime  @default(now()) @updatedAt
-  deleted_at DateTime?
-
-  name     String?
-  type     String?
-  size     Int?
-  file     String?
-  file_alt String?
-
-  messages Message[]
-
-  @@map("attachments")
-}
-
 model NotificationEvent {
   id         String    @id @default(cuid())
   created_at DateTime  @default(now())
@@ -357,10 +403,6 @@ model Notification {
   @@index([sender_id])
   @@map("notifications")
 }
-
-// =============================================================================
-// PAYMENT MODELS
-// =============================================================================
 
 model UserPaymentMethod {
   id         String    @id @default(cuid())
@@ -404,10 +446,6 @@ model PaymentTransaction {
   @@index([status])
   @@map("payment_transactions")
 }
-
-// =============================================================================
-// CONTENT & CONFIGURATION MODELS
-// =============================================================================
 
 model Faq {
   id         String    @id @default(cuid())

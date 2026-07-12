@@ -83,28 +83,36 @@ export const authRoute = async (fastify: FastifyInstance): Promise<void> => {
   // Forwards every unmatched /api/auth/* request to Better Auth's handler.
   // ---------------------------------------------------------------------------
 
-  fastify.all('/*', async (request, reply) => {
-    const url = new URL(
-      request.url,
-      `${request.protocol}://${request.headers.host}`,
-    );
+  fastify.all(
+    '/*',
+    {
+      schema: {
+        hide: true,
+      },
+    },
+    async (request, reply) => {
+      const url = new URL(
+        request.url,
+        `${request.protocol}://${request.headers.host}`,
+      );
 
-    const req = new Request(url.toString(), {
-      method: request.method,
-      headers: fromNodeHeaders(request.headers),
-      body:
-        request.method !== 'GET' && request.method !== 'HEAD'
-          ? JSON.stringify(request.body)
-          : undefined,
-    });
+      const req = new Request(url.toString(), {
+        method: request.method,
+        headers: fromNodeHeaders(request.headers),
+        body:
+          request.method !== 'GET' && request.method !== 'HEAD'
+            ? JSON.stringify(request.body)
+            : undefined,
+      });
 
-    const response = await auth.handler(req);
+      const response = await auth.handler(req);
 
-    reply.status(response.status);
-    response.headers.forEach((value, key) => reply.header(key, value));
+      reply.status(response.status);
+      response.headers.forEach((value, key) => reply.header(key, value));
 
-    return reply.send(response.body ? await response.text() : null);
-  });
+      return reply.send(response.body ? await response.text() : null);
+    },
+  );
 };
 
 export default authRoute;

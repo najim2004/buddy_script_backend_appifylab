@@ -16,6 +16,7 @@ export const notificationsRoute = async (
     {
       preHandler: [fastify.authenticate],
       schema: {
+        hide: true,
         tags: [SWAGGER_TAGS.NOTIFICATIONS],
         summary: 'List user notifications',
         security: [{ bearerAuth: [] }],

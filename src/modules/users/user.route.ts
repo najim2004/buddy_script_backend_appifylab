@@ -12,6 +12,7 @@ export const userRoute = async (fastify: FastifyInstance): Promise<void> => {
     {
       preHandler: [fastify.authenticate],
       schema: {
+        hide: true,
         tags: [SWAGGER_TAGS.USERS],
         summary: 'Get current user profile',
         security: [{ bearerAuth: [] }],
@@ -29,6 +30,7 @@ export const userRoute = async (fastify: FastifyInstance): Promise<void> => {
     {
       preHandler: [fastify.authenticate],
       schema: {
+        hide: true,
         tags: [SWAGGER_TAGS.USERS],
         summary: 'Update current user profile',
         security: [{ bearerAuth: [] }],

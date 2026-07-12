@@ -8,7 +8,7 @@ import env from './env';
  * - Production:  JSON lines (ingestion-ready for Datadog / Loki / CloudWatch)
  *
  * Sensitive fields (password, token, authorization) are redacted before
- * the log line is serialised to prevent accidental credential leakage.
+ * the log line is serialized to prevent accidental credential leakage.
  */
 export const logger = pino({
   level: env.NODE_ENV === 'production' ? 'info' : 'debug',

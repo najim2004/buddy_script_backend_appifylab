@@ -12,6 +12,7 @@ const swaggerPlugin: FastifyPluginAsync = fp(async (fastify) => {
         description: `${env.APP_NAME} API Documentation`,
         version: '1.0.0',
       },
+
       servers: [
         {
           url: env.APP_URL,

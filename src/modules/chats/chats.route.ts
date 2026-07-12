@@ -17,6 +17,7 @@ export const chatsRoute = async (fastify: FastifyInstance): Promise<void> => {
     {
       preHandler: [fastify.authenticate],
       schema: {
+        hide: true,
         tags: [SWAGGER_TAGS.CHATS],
         summary: 'List user conversations',
         security: [{ bearerAuth: [] }],
