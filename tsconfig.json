@@ -1,0 +1,18 @@
+{
+  "extends": "fastify-tsconfig",
+  "compilerOptions": {
+    "outDir": "dist",
+    "sourceMap": true,
+    // Override fastify-tsconfig's NodeNext to CommonJS so ESM-only packages
+    // (better-auth, etc.) can be statically imported without require() errors.
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    // Explicitly carry over strict settings from fastify-tsconfig to ensure
+    // our module override does not silently relax them.
+    "strict": true,
+    "noUnusedLocals": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist", "prisma/generated"]
+}

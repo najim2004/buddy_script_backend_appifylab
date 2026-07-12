@@ -1,0 +1,9 @@
+<p>Hello <%= name %>,</p>
+<p>Please use the following details to verify your email:</p>
+<% if (locals.otp) { %>
+  <p><strong>Your OTP Code:</strong> <%= otp %></p>
+<% } %>
+<% if (locals.verificationLink) { %>
+  <p><a href="<%= verificationLink %>">Click here to verify your email</a></p>
+<% } %>
+<p>Thank you!</p>

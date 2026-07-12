@@ -1,0 +1,100 @@
+src/
+│
+├── app/
+│ ├── app.ts
+│ ├── server.ts
+│ ├── register.ts
+│ ├── env.ts
+│ └── logger.ts
+│
+├── core/
+│ ├── errors/
+│ ├── constants/
+│ ├── utils/
+│ ├── types/
+│ └── decorators/
+│
+├── infrastructure/
+│ │
+│ ├── prisma/
+│ │ ├── client.ts
+│ │ └── migrations/
+│ │
+│ ├── redis/
+│ │ └── redis.ts
+│ │
+│ ├── queues/
+│ │ ├── email.queue.ts
+│ │ ├── notification.queue.ts
+│ │ └── payment.queue.ts
+│ │
+│ ├── workers/
+│ │ ├── email.worker.ts
+│ │ └── payment.worker.ts
+│ │
+│ ├── mail/
+│ │ ├── transporter.ts
+│ │ ├── templates/
+│ │ │ ├── verify.ejs
+│ │ │ └── reset-password.ejs
+│ │ └── mail.service.ts
+│ │
+│ ├── storage/
+│ │ ├── s3.ts
+│ │ └── minio.ts
+│ │
+│ ├── payments/
+│ │ └── stripe.ts
+│ │
+│ └── socket/
+│ ├── io.ts
+│ └── redis-adapter.ts
+│
+├── plugins/
+│ ├── prisma.plugin.ts
+│ ├── redis.plugin.ts
+│ ├── jwt.plugin.ts
+│ ├── swagger.plugin.ts
+│ ├── socket.plugin.ts
+│ └── stripe.plugin.ts
+│
+├── modules/
+│ │
+│ ├── auth/
+│ │ ├── auth.route.ts
+│ │ ├── auth.controller.ts
+│ │ ├── auth.service.ts
+│ │ ├── auth.repository.ts
+│ │ ├── auth.schema.ts
+│ │ ├── auth.dto.ts
+│ │ └── auth.types.ts
+│ │
+│ ├── users/
+│ │ ├── user.route.ts
+│ │ ├── user.controller.ts
+│ │ ├── user.service.ts
+│ │ ├── user.repository.ts
+│ │ └── user.schema.ts
+│ │
+│ ├── posts/
+│ ├── notifications/
+│ ├── chats/
+│ ├── payments/
+│ └── admin/
+│
+├── jobs/
+│ ├── email.job.ts
+│ └── payment.job.ts
+│
+├── hooks/
+│ ├── auth.hook.ts
+│ └── permission.hook.ts
+│
+├── middlewares/
+│ ├── auth.middleware.ts
+│ └── error.middleware.ts
+│
+├── docs/
+│ └── swagger.ts
+│
+└── index.ts
