@@ -1,6 +1,8 @@
 import { FastifyError, FastifyReply, FastifyRequest } from 'fastify';
 import { AppError } from '../core/errors/app.error';
 
+import { errorResponse } from '../core/utils/response';
+
 /**
  * Global Fastify error handler.
  *
@@ -22,11 +24,9 @@ export const errorMiddleware = (
       { code: error.code, statusCode: error.statusCode },
       error.message,
     );
-    reply.status(error.statusCode).send({
-      success: false,
-      code: error.code,
-      message: error.message,
-    });
+    reply
+      .status(error.statusCode)
+      .send(errorResponse(error.message, error.code));
     return;
   }
 
@@ -40,11 +40,14 @@ export const errorMiddleware = (
       { statusCode: fastifyError.statusCode, code: fastifyError.code },
       fastifyError.message,
     );
-    reply.status(fastifyError.statusCode).send({
-      success: false,
-      code: fastifyError.code ?? 'REQUEST_ERROR',
-      message: fastifyError.message,
-    });
+    reply
+      .status(fastifyError.statusCode)
+      .send(
+        errorResponse(
+          fastifyError.message,
+          fastifyError.code ?? 'REQUEST_ERROR',
+        ),
+      );
     return;
   }
 
@@ -52,11 +55,14 @@ export const errorMiddleware = (
   // 4. Unknown / programming errors — log full error, return generic 500
   // ---------------------------------------------------------------------------
   request.log.error({ err: error }, 'Unhandled error');
-  reply.status(500).send({
-    success: false,
-    code: 'INTERNAL_SERVER_ERROR',
-    message: 'An unexpected error occurred. Please try again later.',
-  });
+  reply
+    .status(500)
+    .send(
+      errorResponse(
+        'An unexpected error occurred. Please try again later.',
+        'INTERNAL_SERVER_ERROR',
+      ),
+    );
 };
 
 export default errorMiddleware;

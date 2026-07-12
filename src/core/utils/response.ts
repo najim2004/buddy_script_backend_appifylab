@@ -46,7 +46,7 @@ export function successResponse<T>(
 ): ApiSuccessResponse<T> {
   return {
     success: true,
-    data,
+    ...(data && { data }),
     ...(message && { message }),
     ...(meta && { meta }),
   };

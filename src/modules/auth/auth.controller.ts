@@ -1,15 +1,19 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
-import { fromNodeHeaders } from 'better-auth/node';
 import auth from '../../infrastructure/auth/better-auth';
 import authService from './auth.service';
 import { successResponse } from '../../core/utils/response';
 import { SignUpDto, SignInDto } from './auth.schema';
+import { fromNodeHeaders } from 'better-auth/node';
 
 export class AuthController {
   private forwardCookies(result: { headers?: Headers }, reply: FastifyReply) {
     const cookies = result.headers?.getSetCookie?.() ?? [];
     cookies.forEach((cookie) => reply.header('set-cookie', cookie));
   }
+
+  // ---------------------------------------------------------------------------
+  // POST /api/auth/sign-up - Register with email and password
+  // ---------------------------------------------------------------------------
 
   async signUp(
     request: FastifyRequest<{ Body: SignUpDto }>,
@@ -31,6 +35,9 @@ export class AuthController {
     );
   }
 
+  // ---------------------------------------------------------------------------
+  // POST /api/auth/sign-in - Login with email and password
+  // ---------------------------------------------------------------------------
   async signIn(
     request: FastifyRequest<{ Body: SignInDto }>,
     reply: FastifyReply,
@@ -50,6 +57,22 @@ export class AuthController {
     );
   }
 
+  // ---------------------------------------------------------------------------
+  // POST /api/auth/sign-out - Logout user
+  // ---------------------------------------------------------------------------
+  async signOut(request: FastifyRequest, reply: FastifyReply): Promise<void> {
+    const result = await auth.api.signOut({
+      headers: fromNodeHeaders(request.headers),
+      returnHeaders: true,
+    });
+
+    this.forwardCookies(result, reply);
+    return reply.send(successResponse(null, 'Logout successful'));
+  }
+
+  // ---------------------------------------------------------------------------
+  // GET /api/auth/me - Get authenticated user profile
+  // ---------------------------------------------------------------------------
   async me(request: FastifyRequest, reply: FastifyReply): Promise<void> {
     const { userId } = request.user;
     const user = await authService.me(userId);

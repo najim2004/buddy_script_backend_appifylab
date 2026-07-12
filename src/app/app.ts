@@ -29,6 +29,11 @@ export const createApp = async (): Promise<FastifyInstance> => {
   }) as unknown as FastifyInstance;
 
   // ---------------------------------------------------------------------------
+  // Global Error Handler
+  // ---------------------------------------------------------------------------
+  app.setErrorHandler(errorMiddleware);
+
+  // ---------------------------------------------------------------------------
   // Security & Utility Plugins
   // ---------------------------------------------------------------------------
 
@@ -76,12 +81,6 @@ export const createApp = async (): Promise<FastifyInstance> => {
   // ---------------------------------------------------------------------------
 
   await registerRoutes(app);
-
-  // ---------------------------------------------------------------------------
-  // Global Error Handler
-  // ---------------------------------------------------------------------------
-
-  app.setErrorHandler(errorMiddleware);
 
   return app;
 };

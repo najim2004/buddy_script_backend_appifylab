@@ -1,7 +1,11 @@
 import { FastifyInstance } from 'fastify';
 import authController from './auth.controller';
 import { SWAGGER_TAGS } from '../../docs/swagger';
-import { signUpSchema, signInSchema } from './auth.schema';
+import {
+  signUpSchema,
+  signInSchema,
+  authMeResponseSchema,
+} from './auth.schema';
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { fromNodeHeaders } from 'better-auth/node';
 import auth from '../../infrastructure/auth/better-auth';
@@ -40,6 +44,22 @@ export const authRoute = async (fastify: FastifyInstance): Promise<void> => {
   );
 
   // ---------------------------------------------------------------------------
+  // POST /api/auth/sign-out - Logout user
+  // ---------------------------------------------------------------------------
+  fastify.post(
+    '/sign-out',
+    {
+      preHandler: [fastify.authenticate],
+      schema: {
+        tags: [SWAGGER_TAGS.AUTH],
+        summary: 'Logout user',
+        security: [{ bearerAuth: [] }],
+      },
+    },
+    authController.signOut.bind(authController),
+  );
+
+  // ---------------------------------------------------------------------------
   // GET /api/auth/me - Get authenticated user profile
   // ---------------------------------------------------------------------------
   fastify.get(
@@ -50,6 +70,9 @@ export const authRoute = async (fastify: FastifyInstance): Promise<void> => {
         tags: [SWAGGER_TAGS.AUTH],
         summary: 'Get authenticated user profile',
         security: [{ bearerAuth: [] }],
+        response: {
+          200: authMeResponseSchema,
+        },
       },
     },
     authController.me.bind(authController),

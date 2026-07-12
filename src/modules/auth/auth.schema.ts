@@ -1,4 +1,5 @@
 import { Type, Static } from '@sinclair/typebox';
+import { createSuccessResponseSchema } from '../../core/utils/schema';
 
 export const signUpSchema = Type.Object({
   first_name: Type.String({ minLength: 1, examples: ['user'] }),
@@ -12,13 +13,6 @@ export const signInSchema = Type.Object({
   password: Type.String({ minLength: 1, examples: ['12345678'] }),
 });
 
-export type SignUpDto = Static<typeof signUpSchema>;
-export type SignInDto = Static<typeof signInSchema>;
-
-/**
- * Profile update schema — used by the users module for PATCH /api/users/me.
- * Kept here and re-exported so the users module can import from a shared location.
- */
 export const updateProfileSchema = Type.Object({
   name: Type.Optional(Type.String({ minLength: 1 })),
   first_name: Type.Optional(Type.String({ minLength: 1 })),
@@ -27,4 +21,17 @@ export const updateProfileSchema = Type.Object({
   avatar: Type.Optional(Type.String({ format: 'uri' })),
 });
 
+export const authMeResponseSchema = createSuccessResponseSchema(
+  Type.Object({
+    id: Type.String(),
+    email: Type.String(),
+    first_name: Type.String(),
+    last_name: Type.String(),
+    type: Type.String(),
+    created_at: Type.String({ format: 'date-time' }),
+  }),
+);
+
+export type SignUpDto = Static<typeof signUpSchema>;
+export type SignInDto = Static<typeof signInSchema>;
 export type UpdateProfileDto = Static<typeof updateProfileSchema>;
