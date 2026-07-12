@@ -1,15 +1,15 @@
 import { Type, Static } from '@sinclair/typebox';
 
 export const signUpSchema = Type.Object({
-  first_name: Type.String({ minLength: 1 }),
-  last_name: Type.String({ minLength: 1 }),
-  email: Type.String({ format: 'email' }),
-  password: Type.String({ minLength: 8 }),
+  first_name: Type.String({ minLength: 1, examples: ['user'] }),
+  last_name: Type.String({ minLength: 1, examples: ['name'] }),
+  email: Type.String({ format: 'email', examples: ['user@example.com'] }),
+  password: Type.String({ minLength: 8, examples: ['12345678'] }),
 });
 
 export const signInSchema = Type.Object({
-  email: Type.String({ format: 'email' }),
-  password: Type.String({ minLength: 1 }),
+  email: Type.String({ format: 'email', examples: ['user@example.com'] }),
+  password: Type.String({ minLength: 1, examples: ['12345678'] }),
 });
 
 export type SignUpDto = Static<typeof signUpSchema>;
