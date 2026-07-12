@@ -31,20 +31,12 @@ export function StringEnum<T extends string>(
 }
 
 /**
- * Text field shape when `@fastify/multipart` is registered with
- * `attachFieldsToBody: true` (official Fastify pattern).
- *
- * @see https://github.com/fastify/fastify-multipart#json-schema-non-file-field
- */
-export const MultipartText = <T extends TSchema>(schema: T) =>
-  Type.Object({
-    value: schema,
-  });
-
-/**
  * File field for Swagger + Ajv via `@fastify/multipart` `ajvFilePlugin`.
  * Emits OpenAPI `{ type: 'string', format: 'binary' }` and validates
- * `!!field.file` at runtime.
+ * `!!field.file` at runtime (`attachFieldsToBody: true`).
+ *
+ * Prefer `Type.Array(MultipartFile)` for multi-upload — avoid `anyOf` unions
+ * (Swagger UI will not render a file picker).
  *
  * @see https://github.com/fastify/fastify-multipart#json-schema-with-swagger
  */
@@ -57,11 +49,3 @@ export const MultipartFile = Type.Unsafe<{
 }>({ isFile: true });
 
 export type MultipartFileType = Static<typeof MultipartFile>;
-
-/** Single file or repeated same-name file fields. */
-export const MultipartFiles = Type.Union([
-  MultipartFile,
-  Type.Array(MultipartFile),
-]);
-
-export type MultipartFilesType = Static<typeof MultipartFiles>;

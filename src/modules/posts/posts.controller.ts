@@ -2,10 +2,7 @@ import { FastifyReply, FastifyRequest } from 'fastify';
 import postsService from './posts.service';
 import type { UploadedPostFile } from './posts.types';
 import { successResponse } from '../../core/utils/response';
-import {
-  multipartValue,
-  normalizeMultipartFiles,
-} from '../../core/utils/multipart';
+import { normalizeMultipartFiles } from '../../core/utils/multipart';
 import {
   type CreatePostMultipartDtoType,
   type UpdatePostDtoType,
@@ -23,9 +20,9 @@ export class PostsController {
     const body = request.body as CreatePostMultipartDtoType;
 
     const data = {
-      content: multipartValue(body.content),
-      visibility: multipartValue(body.visibility),
-      post_type: multipartValue(body.post_type),
+      content: body.content,
+      visibility: body.visibility,
+      post_type: body.post_type,
     };
 
     const uploadedFiles: UploadedPostFile[] = [];
@@ -176,8 +173,15 @@ export class PostsController {
   ): Promise<void> {
     const { userId } = request.user;
     const params = request.params as { id: string };
-    await postsService.deleteComment(params.id, userId);
-    reply.send(successResponse(null, 'Comment deleted successfully'));
+    const result = await postsService.deleteComment(params.id, userId);
+    reply.send(
+      successResponse(
+        result,
+        result.soft_deleted
+          ? 'Comment soft-deleted successfully'
+          : 'Comment deleted successfully',
+      ),
+    );
   }
 }
 

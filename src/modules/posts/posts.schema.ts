@@ -1,6 +1,6 @@
 import { Type, Static } from '@sinclair/typebox';
 import { PostType, PostVisibility } from '../../../prisma/generated/enums';
-import { MultipartFiles, MultipartText, StringEnum } from '../../core/utils/schema';
+import { MultipartFile, StringEnum } from '../../core/utils/schema';
 
 export const CreatePostDto = Type.Object({
   content: Type.Optional(Type.String()),
@@ -11,14 +11,23 @@ export const CreatePostDto = Type.Object({
 export type CreatePostDtoType = Static<typeof CreatePostDto>;
 
 /**
- * Multipart create-post body.
- * Requires `@fastify/multipart` with `attachFieldsToBody: true` + `ajvFilePlugin`.
+ * Multipart create-post body (Swagger-friendly flat fields).
+ *
+ * Requires:
+ * - `attachFieldsToBody: true` + `ajvFilePlugin`
+ * - `flattenMultipartBody` in `preValidation` (unwraps `{ value }` text parts
+ *   and normalizes a single file into an array)
  */
 export const CreatePostMultipartDto = Type.Object({
-  content: Type.Optional(MultipartText(Type.String())),
-  visibility: Type.Optional(MultipartText(StringEnum(PostVisibility))),
-  post_type: Type.Optional(MultipartText(StringEnum(PostType))),
-  attachments: Type.Optional(MultipartFiles),
+  content: Type.Optional(Type.String()),
+  visibility: Type.Optional(StringEnum(PostVisibility)),
+  post_type: Type.Optional(StringEnum(PostType)),
+  attachments: Type.Optional(
+    Type.Array(MultipartFile, {
+      minItems: 0,
+      description: 'Optional. One or more files (same field name: attachments).',
+    }),
+  ),
 });
 
 export type CreatePostMultipartDtoType = Static<typeof CreatePostMultipartDto>;

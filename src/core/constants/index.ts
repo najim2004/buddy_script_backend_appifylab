@@ -83,3 +83,10 @@ export const STORAGE_PATHS = {
 } as const;
 
 export type StoragePath = (typeof STORAGE_PATHS)[keyof typeof STORAGE_PATHS];
+
+// ---------------------------------------------------------------------------
+// Community / Posts
+// ---------------------------------------------------------------------------
+
+/** Shown in place of content when a comment is soft-deleted but still returned. */
+export const DELETED_COMMENT_MESSAGE = 'This comment was deleted.';

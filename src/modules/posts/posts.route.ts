@@ -10,6 +10,7 @@ import {
   ParamsWithId,
 } from './posts.schema';
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
+import { flattenMultipartBody } from '../../core/utils/multipart';
 
 export const postsRoute = async (fastify: FastifyInstance): Promise<void> => {
   const typedFastify = fastify.withTypeProvider<TypeBoxTypeProvider>();
@@ -33,6 +34,9 @@ export const postsRoute = async (fastify: FastifyInstance): Promise<void> => {
   typedFastify.post(
     '/',
     {
+      preValidation: async (request) => {
+        flattenMultipartBody(request, ['attachments']);
+      },
       preHandler: [fastify.authenticate],
       schema: {
         tags: [SWAGGER_TAGS.POSTS],
