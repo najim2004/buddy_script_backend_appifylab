@@ -2,7 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { SWAGGER_TAGS } from '../../docs/swagger';
 import postsController from './posts.controller';
 import {
-  CreatePostDto,
+  CreatePostMultipartDto,
   UpdatePostDto,
   UpdateVisibilityDto,
   CreateCommentDto,
@@ -36,9 +36,12 @@ export const postsRoute = async (fastify: FastifyInstance): Promise<void> => {
       preHandler: [fastify.authenticate],
       schema: {
         tags: [SWAGGER_TAGS.POSTS],
-        summary: 'Create a new post',
+        summary: 'Create a new post (multipart)',
+        description:
+          'Send `multipart/form-data` with optional text fields `content`, `visibility`, `post_type` and one or more file fields named `attachments`.',
         security: [{ bearerAuth: [] }],
-        body: CreatePostDto,
+        consumes: ['multipart/form-data'],
+        body: CreatePostMultipartDto,
       },
     },
     postsController.createPost.bind(postsController),

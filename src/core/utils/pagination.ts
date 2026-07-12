@@ -36,13 +36,13 @@ export function buildPaginationMeta(
   page: number,
   limit: number,
 ): PaginationMeta {
-  const totalPages = Math.ceil(total / limit);
+  const total_pages = Math.ceil(total / limit);
   return {
     page,
     limit,
     total,
-    totalPages,
-    hasNextPage: page < totalPages,
-    hasPrevPage: page > 1,
+    total_pages,
+    has_next_page: page < total_pages,
+    has_prev_page: page > 1,
   };
 }

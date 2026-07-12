@@ -1,9 +1,11 @@
+import path from 'path';
 import fastify, { FastifyInstance, FastifyBaseLogger } from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
-import multipart from '@fastify/multipart';
+import multipart, { ajvFilePlugin } from '@fastify/multipart';
 import sensible from '@fastify/sensible';
+import fastifyStatic from '@fastify/static';
 
 import prismaPlugin from '../plugins/prisma.plugin';
 import redisPlugin from '../plugins/redis.plugin';
@@ -26,6 +28,15 @@ export const createApp = async (): Promise<FastifyInstance> => {
     requestIdHeader: 'x-request-id',
     requestIdLogLabel: 'requestId',
     trustProxy: env.NODE_ENV === 'production',
+    // Required for @fastify/multipart + @fastify/swagger file fields (`isFile`)
+    ajv: {
+      plugins: [
+        (ajv) => {
+          ajvFilePlugin(ajv);
+          return ajv;
+        },
+      ],
+    },
   }) as unknown as FastifyInstance;
 
   // ---------------------------------------------------------------------------
@@ -62,8 +73,22 @@ export const createApp = async (): Promise<FastifyInstance> => {
   // Provides `reply.notFound()`, `reply.badRequest()`, etc.
   await app.register(sensible);
 
-  // Automatically parse multipart/form-data bodies
-  await app.register(multipart, { attachFieldsToBody: true });
+  // Official Fastify multipart + Swagger pattern:
+  // attachFieldsToBody + ajvFilePlugin + schema `{ isFile: true }`
+  await app.register(multipart, {
+    attachFieldsToBody: true,
+    limits: {
+      fileSize: 20 * 1024 * 1024,
+      files: 10,
+    },
+  });
+
+  // Serve local storage files at /public/storage/...
+  await app.register(fastifyStatic, {
+    root: path.join(process.cwd(), 'public'),
+    prefix: '/public/',
+    decorateReply: false,
+  });
 
   // ---------------------------------------------------------------------------
   // Infrastructure Plugins (decorate `fastify.prisma`, `fastify.redis`, etc.)

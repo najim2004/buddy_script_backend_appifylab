@@ -15,14 +15,14 @@ export interface PaginationMeta {
   page: number;
   limit: number;
   total: number;
-  totalPages: number;
-  hasNextPage: boolean;
-  hasPrevPage: boolean;
+  total_pages: number;
+  has_next_page: boolean;
+  has_prev_page: boolean;
 }
 
 export interface CursorPaginationMeta {
-  nextCursor: string | null;
-  hasNextPage: boolean;
+  next_cursor: string | null;
+  has_next_page: boolean;
 }
 
 export interface ApiSuccessResponse<T = unknown> {

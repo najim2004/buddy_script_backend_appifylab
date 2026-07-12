@@ -7,7 +7,7 @@ import {
   GetObjectCommandInput,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl as getS3SignedUrl } from '@aws-sdk/s3-request-presigner';
-import { createHmac } from 'crypto';
+import { createHmac, randomUUID } from 'crypto';
 import { Readable } from 'stream';
 import * as fs from 'fs/promises';
 import * as fsSync from 'fs';
@@ -344,6 +344,31 @@ export class Storage {
   // -------------------------------------------------------------------------
   // Shorthand static methods — mirror of SojebStorage in NestJS boilerplate
   // -------------------------------------------------------------------------
+
+  /**
+   * Build a safe display name and unique storage key from an original filename.
+   *
+   * @example
+   *   Storage.generateFileMeta('my photo.jpg')
+   *   // → { file_name: 'my_photo.jpg', file_key: 'uuid.jpg' }
+   *
+   *   Storage.generateFileMeta('my doc.pdf', 'posts')
+   *   // → { file_name: 'my_doc.pdf', file_key: 'posts/uuid.pdf' }
+   */
+  static generateFileMeta(
+    originalName: string,
+    directory?: string,
+  ): { file_key: string; file_name: string } {
+    const file_name =
+      path.basename(originalName).replace(/[^a-zA-Z0-9._-]/g, '_') || 'file';
+    const ext = path.extname(file_name);
+    const unique = `${randomUUID()}${ext}`;
+    const file_key = directory
+      ? `${directory.replace(/^\/+|\/+$/g, '')}/${unique}`
+      : unique;
+
+    return { file_key, file_name };
+  }
 
   /**
    * Generate a direct public URL for the given key.

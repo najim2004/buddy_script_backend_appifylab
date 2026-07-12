@@ -1,62 +1,37 @@
 import { Type, Static } from '@sinclair/typebox';
-
-export const AttachmentTypeEnum = Type.Union([
-  Type.Literal('IMAGE'),
-  Type.Literal('DOCUMENT'),
-  Type.Literal('VIDEO'),
-  Type.Literal('AUDIO'),
-  Type.Literal('FILE'),
-]);
-
-export const CreateAttachmentDto = Type.Object({
-  file_path: Type.String({ minLength: 1 }),
-  type: Type.Optional(AttachmentTypeEnum),
-  file_name: Type.Optional(Type.String()),
-  mime_type: Type.Optional(Type.String()),
-  size_bytes: Type.Optional(Type.Number()),
-});
+import { PostType, PostVisibility } from '../../../prisma/generated/enums';
+import { MultipartFiles, MultipartText, StringEnum } from '../../core/utils/schema';
 
 export const CreatePostDto = Type.Object({
   content: Type.Optional(Type.String()),
-  attachments: Type.Optional(Type.Array(CreateAttachmentDto)),
-  visibility: Type.Optional(
-    Type.Union([
-      Type.Literal('PUBLIC'),
-      Type.Literal('PRIVATE'),
-      Type.Literal('FRIENDS'),
-    ]),
-  ),
-  post_type: Type.Optional(
-    Type.Union([
-      Type.Literal('NORMAL'),
-      Type.Literal('EVENT'),
-      Type.Literal('ARTICLE'),
-    ]),
-  ),
+  visibility: Type.Optional(StringEnum(PostVisibility)),
+  post_type: Type.Optional(StringEnum(PostType)),
 });
 
 export type CreatePostDtoType = Static<typeof CreatePostDto>;
 
+/**
+ * Multipart create-post body.
+ * Requires `@fastify/multipart` with `attachFieldsToBody: true` + `ajvFilePlugin`.
+ */
+export const CreatePostMultipartDto = Type.Object({
+  content: Type.Optional(MultipartText(Type.String())),
+  visibility: Type.Optional(MultipartText(StringEnum(PostVisibility))),
+  post_type: Type.Optional(MultipartText(StringEnum(PostType))),
+  attachments: Type.Optional(MultipartFiles),
+});
+
+export type CreatePostMultipartDtoType = Static<typeof CreatePostMultipartDto>;
+
 export const UpdatePostDto = Type.Object({
   content: Type.Optional(Type.String()),
-  attachments: Type.Optional(Type.Array(CreateAttachmentDto)),
-  post_type: Type.Optional(
-    Type.Union([
-      Type.Literal('NORMAL'),
-      Type.Literal('EVENT'),
-      Type.Literal('ARTICLE'),
-    ]),
-  ),
+  post_type: Type.Optional(StringEnum(PostType)),
 });
 
 export type UpdatePostDtoType = Static<typeof UpdatePostDto>;
 
 export const UpdateVisibilityDto = Type.Object({
-  visibility: Type.Union([
-    Type.Literal('PUBLIC'),
-    Type.Literal('PRIVATE'),
-    Type.Literal('FRIENDS'),
-  ]),
+  visibility: StringEnum(PostVisibility),
 });
 
 export type UpdateVisibilityDtoType = Static<typeof UpdateVisibilityDto>;
