@@ -20,11 +20,16 @@ export interface PaginationMeta {
   hasPrevPage: boolean;
 }
 
+export interface CursorPaginationMeta {
+  nextCursor: string | null;
+  hasNextPage: boolean;
+}
+
 export interface ApiSuccessResponse<T = unknown> {
   success: true;
   data: T;
   message?: string;
-  meta?: PaginationMeta;
+  meta?: PaginationMeta | CursorPaginationMeta;
 }
 
 export interface ApiErrorResponse {
@@ -42,14 +47,14 @@ export type ApiResponse<T = unknown> = ApiSuccessResponse<T> | ApiErrorResponse;
 export function successResponse<T>(
   data: T,
   message?: string,
-  meta?: PaginationMeta,
+  meta?: PaginationMeta | CursorPaginationMeta,
 ): ApiSuccessResponse<T> {
   return {
     success: true,
-    ...(data && { data }),
+    ...(data !== undefined && data !== null && { data }),
     ...(message && { message }),
     ...(meta && { meta }),
-  };
+  } as ApiSuccessResponse<T>;
 }
 
 /**
