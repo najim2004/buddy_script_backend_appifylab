@@ -8,11 +8,9 @@ import type { AuthUserPayload } from '../modules/auth/auth.types';
 declare module 'fastify' {
   interface FastifyInstance {
     /**
-     * Prehandler that validates the Better Auth session and attaches
-     * the decoded user payload to `request.user`.
+     * Requires a valid Better Auth session and sets `request.user`.
      *
-     * Usage:
-     *   fastify.get('/protected', { preHandler: [fastify.authenticate] }, handler)
+     *   fastify.get('/posts', { preHandler: [fastify.authenticate] }, handler)
      */
     authenticate: (
       request: FastifyRequest,

@@ -25,27 +25,6 @@ import type {
 } from './posts.types';
 import { Prisma } from '../../../prisma/generated/client';
 
-type AttachmentRow = {
-  id: string;
-  type: string | null;
-  file_path: string;
-  file_name: string | null;
-  mime_type: string | null;
-  size_bytes: bigint | number | null;
-};
-
-/** Response attachment — raw storage key in `file_path` (no URL transform). */
-function toAttachmentResponse(att: AttachmentRow) {
-  return {
-    id: att.id,
-    type: att.type ?? 'FILE',
-    file_path: att.file_path,
-    file_name: att.file_name ?? '',
-    mime_type: att.mime_type ?? '',
-    size_bytes: att.size_bytes !== null ? Number(att.size_bytes) : null,
-  };
-}
-
 export class PostsService {
   async createPost(
     authorId: string,
@@ -146,9 +125,18 @@ export class PostsService {
             select: {
               id: true,
               created_at: true,
+              post_id: true,
               content: true,
               deleted_at: true,
               parent_id: true,
+              reply_to_user: {
+                select: {
+                  id: true,
+                  first_name: true,
+                  last_name: true,
+                  avatar: true,
+                },
+              },
               user: {
                 select: {
                   id: true,
@@ -172,18 +160,21 @@ export class PostsService {
       });
 
       let latest_comment: PostLatestComment | null = null;
-      if (post.comments.length > 0) {
-        const comment = post.comments[0];
-        const is_deleted = comment.deleted_at !== null;
+      if (post.comments[0]) {
+        const c = post.comments[0];
+        const is_deleted = c.deleted_at !== null;
         latest_comment = {
-          id: comment.id,
-          created_at: comment.created_at,
-          content: is_deleted ? DELETED_COMMENT_MESSAGE : comment.content,
-          deleted_at: comment.deleted_at,
-          parent_id: comment.parent_id,
+          id: c.id,
+          created_at: c.created_at,
+          post_id: c.post_id,
+          content: is_deleted ? DELETED_COMMENT_MESSAGE : c.content,
+          deleted_at: c.deleted_at,
+          parent_id: c.parent_id,
           is_deleted,
-          likes: comment._count.likes,
-          user: comment.user,
+          likes: c._count.likes,
+          has_liked: false,
+          user: c.user,
+          reply_to_user: c.reply_to_user,
         };
       }
 
@@ -200,7 +191,14 @@ export class PostsService {
         has_liked: false,
         recent_likes: post.likes.map((like) => like.user),
         latest_comment,
-        attachments: post.attachments.map(toAttachmentResponse),
+        attachments: post.attachments.map((att) => ({
+          id: att.id,
+          type: att.type ?? 'FILE',
+          file_path: att.file_path,
+          file_name: att.file_name ?? '',
+          mime_type: att.mime_type ?? '',
+          size_bytes: att.size_bytes !== null ? Number(att.size_bytes) : null,
+        })),
       };
     } catch (error) {
       await Promise.all(storedFiles.map((f) => Storage.delete(f.file_path)));
@@ -208,7 +206,7 @@ export class PostsService {
     }
   }
 
-  async getPostById(id: string, currentUserId?: string): Promise<PostDetail> {
+  async getPostById(id: string, currentUserId: string): Promise<PostDetail> {
     const post = await prisma.post.findUnique({
       where: { id },
       select: {
@@ -252,23 +250,32 @@ export class PostsService {
           take: 1,
           orderBy: { created_at: 'desc' },
           select: {
-            id: true,
-            created_at: true,
-            content: true,
-            deleted_at: true,
-            parent_id: true,
-            user: {
-              select: {
-                id: true,
-                first_name: true,
-                last_name: true,
-                avatar: true,
+              id: true,
+              created_at: true,
+              post_id: true,
+              content: true,
+              deleted_at: true,
+              parent_id: true,
+              reply_to_user: {
+                select: {
+                  id: true,
+                  first_name: true,
+                  last_name: true,
+                  avatar: true,
+                },
+              },
+              user: {
+                select: {
+                  id: true,
+                  first_name: true,
+                  last_name: true,
+                  avatar: true,
+                },
+              },
+              _count: {
+                select: { likes: true },
               },
             },
-            _count: {
-              select: { likes: true },
-            },
-          },
         },
         _count: {
           select: {
@@ -283,29 +290,39 @@ export class PostsService {
       throw new NotFoundError('Post not found');
     }
 
-    let latest_comment: PostLatestComment | null = null;
-    if (post.comments.length > 0) {
-      const comment = post.comments[0];
-      const is_deleted = comment.deleted_at !== null;
-      latest_comment = {
-        id: comment.id,
-        created_at: comment.created_at,
-        content: is_deleted ? DELETED_COMMENT_MESSAGE : comment.content,
-        deleted_at: comment.deleted_at,
-        parent_id: comment.parent_id,
-        is_deleted,
-        likes: comment._count.likes,
-        user: comment.user,
-      };
+    const like = await prisma.like.findFirst({
+      where: { user_id: currentUserId, post_id: id },
+      select: { id: true },
+    });
+    const has_liked = !!like;
+
+    let latestCommentLiked = false;
+    const latestId = post.comments[0]?.id;
+    if (latestId) {
+      const commentLike = await prisma.like.findFirst({
+        where: { user_id: currentUserId, comment_id: latestId },
+        select: { id: true },
+      });
+      latestCommentLiked = !!commentLike;
     }
 
-    let has_liked = false;
-    if (currentUserId) {
-      const like = await prisma.like.findFirst({
-        where: { user_id: currentUserId, post_id: id },
-        select: { id: true }
-      });
-      has_liked = !!like;
+    let latest_comment: PostLatestComment | null = null;
+    if (post.comments[0]) {
+      const c = post.comments[0];
+      const is_deleted = c.deleted_at !== null;
+      latest_comment = {
+        id: c.id,
+        created_at: c.created_at,
+        post_id: c.post_id,
+        content: is_deleted ? DELETED_COMMENT_MESSAGE : c.content,
+        deleted_at: c.deleted_at,
+        parent_id: c.parent_id,
+        is_deleted,
+        likes: c._count.likes,
+        has_liked: latestCommentLiked,
+        user: c.user,
+        reply_to_user: c.reply_to_user,
+      };
     }
 
     return {
@@ -321,7 +338,14 @@ export class PostsService {
       has_liked,
       recent_likes: post.likes.map((like) => like.user),
       latest_comment,
-      attachments: post.attachments.map(toAttachmentResponse),
+      attachments: post.attachments.map((att) => ({
+        id: att.id,
+        type: att.type ?? 'FILE',
+        file_path: att.file_path,
+        file_name: att.file_name ?? '',
+        mime_type: att.mime_type ?? '',
+        size_bytes: att.size_bytes !== null ? Number(att.size_bytes) : null,
+      })),
     };
   }
 
@@ -393,23 +417,32 @@ export class PostsService {
           take: 1,
           orderBy: { created_at: 'desc' as const },
           select: {
-            id: true,
-            created_at: true,
-            content: true,
-            deleted_at: true,
-            parent_id: true,
-            user: {
-              select: {
-                id: true,
-                first_name: true,
-                last_name: true,
-                avatar: true,
+              id: true,
+              created_at: true,
+              post_id: true,
+              content: true,
+              deleted_at: true,
+              parent_id: true,
+              reply_to_user: {
+                select: {
+                  id: true,
+                  first_name: true,
+                  last_name: true,
+                  avatar: true,
+                },
+              },
+              user: {
+                select: {
+                  id: true,
+                  first_name: true,
+                  last_name: true,
+                  avatar: true,
+                },
+              },
+              _count: {
+                select: { likes: true },
               },
             },
-            _count: {
-              select: { likes: true },
-            },
-          },
         },
         _count: {
           select: {
@@ -420,29 +453,39 @@ export class PostsService {
       },
     });
 
-    let latest_comment: PostLatestComment | null = null;
-    if (updatedPost.comments.length > 0) {
-      const comment = updatedPost.comments[0];
-      const is_deleted = comment.deleted_at !== null;
-      latest_comment = {
-        id: comment.id,
-        created_at: comment.created_at,
-        content: is_deleted ? DELETED_COMMENT_MESSAGE : comment.content,
-        deleted_at: comment.deleted_at,
-        parent_id: comment.parent_id,
-        is_deleted,
-        likes: comment._count.likes,
-        user: comment.user,
-      };
+    const like = await prisma.like.findFirst({
+      where: { user_id: userId, post_id: id },
+      select: { id: true },
+    });
+    const has_liked = !!like;
+
+    let latestCommentLiked = false;
+    const latestId = updatedPost.comments[0]?.id;
+    if (latestId) {
+      const commentLike = await prisma.like.findFirst({
+        where: { user_id: userId, comment_id: latestId },
+        select: { id: true },
+      });
+      latestCommentLiked = !!commentLike;
     }
 
-    let has_liked = false;
-    if (userId) {
-      const like = await prisma.like.findFirst({
-        where: { user_id: userId, post_id: id },
-        select: { id: true }
-      });
-      has_liked = !!like;
+    let latest_comment: PostLatestComment | null = null;
+    if (updatedPost.comments[0]) {
+      const c = updatedPost.comments[0];
+      const is_deleted = c.deleted_at !== null;
+      latest_comment = {
+        id: c.id,
+        created_at: c.created_at,
+        post_id: c.post_id,
+        content: is_deleted ? DELETED_COMMENT_MESSAGE : c.content,
+        deleted_at: c.deleted_at,
+        parent_id: c.parent_id,
+        is_deleted,
+        likes: c._count.likes,
+        has_liked: latestCommentLiked,
+        user: c.user,
+        reply_to_user: c.reply_to_user,
+      };
     }
 
     return {
@@ -458,7 +501,14 @@ export class PostsService {
       has_liked,
       recent_likes: updatedPost.likes.map((like) => like.user),
       latest_comment,
-      attachments: updatedPost.attachments.map(toAttachmentResponse),
+      attachments: updatedPost.attachments.map((att) => ({
+        id: att.id,
+        type: att.type ?? 'FILE',
+        file_path: att.file_path,
+        file_name: att.file_name ?? '',
+        mime_type: att.mime_type ?? '',
+        size_bytes: att.size_bytes !== null ? Number(att.size_bytes) : null,
+      })),
     };
   }
 
@@ -657,9 +707,9 @@ export class PostsService {
   }
 
   async getPostsList(
-    cursor?: string,
+    cursor: string | undefined,
     limit = 10,
-    currentUserId?: string,
+    currentUserId: string,
   ): Promise<PaginatedResult<PostDetail>> {
     const take = limit + 1;
 
@@ -710,23 +760,32 @@ export class PostsService {
           take: 1,
           orderBy: { created_at: 'desc' as const },
           select: {
-            id: true,
-            created_at: true,
-            content: true,
-            deleted_at: true,
-            parent_id: true,
-            user: {
-              select: {
-                id: true,
-                first_name: true,
-                last_name: true,
-                avatar: true,
+              id: true,
+              created_at: true,
+              post_id: true,
+              content: true,
+              deleted_at: true,
+              parent_id: true,
+              reply_to_user: {
+                select: {
+                  id: true,
+                  first_name: true,
+                  last_name: true,
+                  avatar: true,
+                },
+              },
+              user: {
+                select: {
+                  id: true,
+                  first_name: true,
+                  last_name: true,
+                  avatar: true,
+                },
+              },
+              _count: {
+                select: { likes: true },
               },
             },
-            _count: {
-              select: { likes: true },
-            },
-          },
         },
         _count: {
           select: {
@@ -741,7 +800,8 @@ export class PostsService {
     const data = has_next_page ? posts.slice(0, limit) : posts;
 
     let userLikedPostIds = new Set<string>();
-    if (currentUserId && data.length > 0) {
+    let userLikedCommentIds = new Set<string>();
+    if (data.length > 0) {
       const likes = await prisma.like.findMany({
         where: {
           user_id: currentUserId,
@@ -750,23 +810,43 @@ export class PostsService {
         select: { post_id: true },
       });
       userLikedPostIds = new Set(likes.map((l) => l.post_id as string));
+
+      const latestCommentIds = data
+        .map((p) => p.comments[0]?.id)
+        .filter((id): id is string => Boolean(id));
+
+      if (latestCommentIds.length > 0) {
+        const commentLikes = await prisma.like.findMany({
+          where: {
+            user_id: currentUserId,
+            comment_id: { in: latestCommentIds },
+          },
+          select: { comment_id: true },
+        });
+        userLikedCommentIds = new Set(
+          commentLikes.map((l) => l.comment_id as string),
+        );
+      }
     }
 
     return {
       data: data.map((post) => {
         let latest_comment: PostLatestComment | null = null;
-        if (post.comments.length > 0) {
-          const comment = post.comments[0];
-          const is_deleted = comment.deleted_at !== null;
+        if (post.comments[0]) {
+          const c = post.comments[0];
+          const is_deleted = c.deleted_at !== null;
           latest_comment = {
-            id: comment.id,
-            created_at: comment.created_at,
-            content: is_deleted ? DELETED_COMMENT_MESSAGE : comment.content,
-            deleted_at: comment.deleted_at,
-            parent_id: comment.parent_id,
+            id: c.id,
+            created_at: c.created_at,
+            post_id: c.post_id,
+            content: is_deleted ? DELETED_COMMENT_MESSAGE : c.content,
+            deleted_at: c.deleted_at,
+            parent_id: c.parent_id,
             is_deleted,
-            likes: comment._count.likes,
-            user: comment.user,
+            likes: c._count.likes,
+            has_liked: userLikedCommentIds.has(c.id),
+            user: c.user,
+            reply_to_user: c.reply_to_user,
           };
         }
 
@@ -783,7 +863,14 @@ export class PostsService {
           has_liked: userLikedPostIds.has(post.id),
           recent_likes: post.likes.map((like) => like.user),
           latest_comment,
-          attachments: post.attachments.map(toAttachmentResponse),
+          attachments: post.attachments.map((att) => ({
+            id: att.id,
+            type: att.type ?? 'FILE',
+            file_path: att.file_path,
+            file_name: att.file_name ?? '',
+            mime_type: att.mime_type ?? '',
+            size_bytes: att.size_bytes !== null ? Number(att.size_bytes) : null,
+          })),
         };
       }),
       meta: {
@@ -868,8 +955,101 @@ export class PostsService {
       content: is_deleted ? DELETED_COMMENT_MESSAGE : comment.content,
       is_deleted,
       likes: comment._count.likes,
+      has_liked: false,
       user: comment.user,
       reply_to_user: comment.reply_to_user,
+    };
+  }
+
+  async getCommentsList(
+    postId: string,
+    cursor: string | undefined,
+    limit = 20,
+    currentUserId: string,
+  ): Promise<PaginatedResult<CommentWithAuthor>> {
+    const post = await prisma.post.findUnique({
+      where: { id: postId },
+      select: { id: true },
+    });
+
+    if (!post) {
+      throw new NotFoundError('Post not found');
+    }
+
+    const take = limit + 1;
+    const comments = await prisma.comment.findMany({
+      where: { post_id: postId },
+      take,
+      cursor: cursor ? { id: cursor } : undefined,
+      skip: cursor ? 1 : 0,
+      orderBy: { created_at: 'desc' },
+      select: {
+        id: true,
+        created_at: true,
+        post_id: true,
+        content: true,
+        parent_id: true,
+        deleted_at: true,
+        reply_to_user: {
+          select: {
+            id: true,
+            first_name: true,
+            last_name: true,
+            avatar: true,
+          },
+        },
+        user: {
+          select: {
+            id: true,
+            first_name: true,
+            last_name: true,
+            avatar: true,
+          },
+        },
+        _count: {
+          select: { likes: true },
+        },
+      },
+    });
+
+    const has_next_page = comments.length > limit;
+    const page = has_next_page ? comments.slice(0, limit) : comments;
+
+    let userLikedCommentIds = new Set<string>();
+    if (page.length > 0) {
+      const likes = await prisma.like.findMany({
+        where: {
+          user_id: currentUserId,
+          comment_id: { in: page.map((c) => c.id) },
+        },
+        select: { comment_id: true },
+      });
+      userLikedCommentIds = new Set(
+        likes.map((l) => l.comment_id as string),
+      );
+    }
+
+    return {
+      data: page.map((comment) => {
+        const is_deleted = comment.deleted_at !== null;
+        return {
+          id: comment.id,
+          created_at: comment.created_at,
+          post_id: comment.post_id,
+          parent_id: comment.parent_id,
+          deleted_at: comment.deleted_at,
+          content: is_deleted ? DELETED_COMMENT_MESSAGE : comment.content,
+          is_deleted,
+          likes: comment._count.likes,
+          has_liked: userLikedCommentIds.has(comment.id),
+          user: comment.user,
+          reply_to_user: comment.reply_to_user,
+        };
+      }),
+      meta: {
+        next_cursor: has_next_page ? page[page.length - 1].id : null,
+        has_next_page,
+      },
     };
   }
 

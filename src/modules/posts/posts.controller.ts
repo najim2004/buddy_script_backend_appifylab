@@ -12,21 +12,12 @@ import {
 } from './posts.schema';
 
 export class PostsController {
-  // ---------------------------------------------------------------------------
-  // POST /api/posts - Create a new post (multipart)
-  // ---------------------------------------------------------------------------
   async createPost(
     request: FastifyRequest,
     reply: FastifyReply,
   ): Promise<void> {
     const { userId } = request.user;
     const body = request.body as CreatePostMultipartDtoType;
-
-    const data = {
-      content: body.content,
-      visibility: body.visibility,
-      post_type: body.post_type,
-    };
 
     const uploadedFiles: UploadedPostFile[] = [];
     for (const part of normalizeMultipartFiles(body.attachments)) {
@@ -39,75 +30,69 @@ export class PostsController {
       });
     }
 
-    const post = await postsService.createPost(userId, data, uploadedFiles);
+    const post = await postsService.createPost(
+      userId,
+      {
+        content: body.content,
+        visibility: body.visibility,
+        post_type: body.post_type,
+      },
+      uploadedFiles,
+    );
+
     reply.send(successResponse(post, 'Post created successfully'));
   }
 
-  // ---------------------------------------------------------------------------
-  // GET /api/posts/:id - Get post by ID
-  // ---------------------------------------------------------------------------
   async getPost(request: FastifyRequest, reply: FastifyReply): Promise<void> {
-    const userId = request.user?.userId;
-    const params = request.params as { id: string };
-    const post = await postsService.getPostById(params.id, userId);
+    const { userId } = request.user;
+    const { id } = request.params as { id: string };
+    const post = await postsService.getPostById(id, userId);
     reply.send(successResponse(post));
   }
 
-  // ---------------------------------------------------------------------------
-  // PATCH /api/posts/:id - Update a post
-  // ---------------------------------------------------------------------------
   async updatePost(
     request: FastifyRequest,
     reply: FastifyReply,
   ): Promise<void> {
     const { userId } = request.user;
-    const params = request.params as { id: string };
+    const { id } = request.params as { id: string };
     const body = request.body as UpdatePostDtoType;
-    const post = await postsService.updatePost(params.id, userId, body);
+    const post = await postsService.updatePost(id, userId, body);
     reply.send(successResponse(post, 'Post updated successfully'));
   }
 
-  // ---------------------------------------------------------------------------
-  // DELETE /api/posts/:id - Delete a post
-  // ---------------------------------------------------------------------------
   async deletePost(
     request: FastifyRequest,
     reply: FastifyReply,
   ): Promise<void> {
     const { userId } = request.user;
-    const params = request.params as { id: string };
-    await postsService.deletePost(params.id, userId);
+    const { id } = request.params as { id: string };
+    await postsService.deletePost(id, userId);
     reply.send(successResponse(null, 'Post deleted successfully'));
   }
 
-  // ---------------------------------------------------------------------------
-  // PATCH /api/posts/:id/visibility - Update post visibility
-  // ---------------------------------------------------------------------------
   async updateVisibility(
     request: FastifyRequest,
     reply: FastifyReply,
   ): Promise<void> {
     const { userId } = request.user;
-    const params = request.params as { id: string };
+    const { id } = request.params as { id: string };
     const body = request.body as UpdateVisibilityDtoType;
     const post = await postsService.updateVisibility(
-      params.id,
+      id,
       userId,
       body.visibility,
     );
     reply.send(successResponse(post, 'Post visibility updated successfully'));
   }
 
-  // ---------------------------------------------------------------------------
-  // POST /api/posts/:id/like - Toggle like/unlike on a post
-  // ---------------------------------------------------------------------------
   async togglePostLike(
     request: FastifyRequest,
     reply: FastifyReply,
   ): Promise<void> {
     const { userId } = request.user;
-    const params = request.params as { id: string };
-    const result = await postsService.toggleLike(userId, 'post', params.id);
+    const { id } = request.params as { id: string };
+    const result = await postsService.toggleLike(userId, 'post', id);
     reply.send(
       successResponse(
         result,
@@ -116,16 +101,13 @@ export class PostsController {
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // POST /api/posts/comments/:id/like - Toggle like/unlike on a comment
-  // ---------------------------------------------------------------------------
   async toggleCommentLike(
     request: FastifyRequest,
     reply: FastifyReply,
   ): Promise<void> {
     const { userId } = request.user;
-    const params = request.params as { id: string };
-    const result = await postsService.toggleLike(userId, 'comment', params.id);
+    const { id } = request.params as { id: string };
+    const result = await postsService.toggleLike(userId, 'comment', id);
     reply.send(
       successResponse(
         result,
@@ -136,18 +118,15 @@ export class PostsController {
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // GET /api/posts/:id/likes - Get post likes with cursor pagination
-  // ---------------------------------------------------------------------------
   async getPostLikes(
     request: FastifyRequest,
     reply: FastifyReply,
   ): Promise<void> {
-    const params = request.params as { id: string };
+    const { id } = request.params as { id: string };
     const query = request.query as CursorPaginationQueryType;
     const result = await postsService.getLikesList(
       'post',
-      params.id,
+      id,
       query.cursor,
       query.limit,
     );
@@ -156,18 +135,15 @@ export class PostsController {
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // GET /api/posts/comments/:id/likes - Get comment likes with cursor pagination
-  // ---------------------------------------------------------------------------
   async getCommentLikes(
     request: FastifyRequest,
     reply: FastifyReply,
   ): Promise<void> {
-    const params = request.params as { id: string };
+    const { id } = request.params as { id: string };
     const query = request.query as CursorPaginationQueryType;
     const result = await postsService.getLikesList(
       'comment',
-      params.id,
+      id,
       query.cursor,
       query.limit,
     );
@@ -176,42 +152,59 @@ export class PostsController {
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // GET /api/posts - List posts with cursor pagination
-  // ---------------------------------------------------------------------------
   async getPosts(request: FastifyRequest, reply: FastifyReply): Promise<void> {
-    const userId = request.user?.userId;
+    const { userId } = request.user;
     const query = request.query as CursorPaginationQueryType;
-    const result = await postsService.getPostsList(query.cursor, query.limit, userId);
+    const result = await postsService.getPostsList(
+      query.cursor,
+      query.limit,
+      userId,
+    );
     reply.send(
       successResponse(result.data, 'Posts retrieved successfully', result.meta),
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // POST /api/posts/:id/comments - Create a comment or reply on a post
-  // ---------------------------------------------------------------------------
   async createComment(
     request: FastifyRequest,
     reply: FastifyReply,
   ): Promise<void> {
     const { userId } = request.user;
-    const params = request.params as { id: string };
+    const { id } = request.params as { id: string };
     const body = request.body as CreateCommentDtoType;
-    const comment = await postsService.createComment(userId, params.id, body);
+    const comment = await postsService.createComment(userId, id, body);
     reply.send(successResponse(comment, 'Comment created successfully'));
   }
 
-  // ---------------------------------------------------------------------------
-  // DELETE /api/posts/comments/:id - Delete a comment or reply
-  // ---------------------------------------------------------------------------
+  async getComments(
+    request: FastifyRequest,
+    reply: FastifyReply,
+  ): Promise<void> {
+    const { userId } = request.user;
+    const { id } = request.params as { id: string };
+    const query = request.query as CursorPaginationQueryType;
+    const result = await postsService.getCommentsList(
+      id,
+      query.cursor,
+      query.limit,
+      userId,
+    );
+    reply.send(
+      successResponse(
+        result.data,
+        'Comments retrieved successfully',
+        result.meta,
+      ),
+    );
+  }
+
   async deleteComment(
     request: FastifyRequest,
     reply: FastifyReply,
   ): Promise<void> {
     const { userId } = request.user;
-    const params = request.params as { id: string };
-    const result = await postsService.deleteComment(params.id, userId);
+    const { id } = request.params as { id: string };
+    const result = await postsService.deleteComment(id, userId);
     reply.send(
       successResponse(
         result,

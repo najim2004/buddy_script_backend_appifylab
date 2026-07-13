@@ -12,6 +12,7 @@ export class AuthService {
         email: true,
         type: true,
         created_at: true,
+        avatar: true,
       },
     });
 

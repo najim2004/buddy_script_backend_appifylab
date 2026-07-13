@@ -29,6 +29,7 @@ export const authMeResponseSchema = createSuccessResponseSchema(
     last_name: Type.String(),
     type: Type.String(),
     created_at: Type.String({ format: 'date-time' }),
+    avatar: Type.Union([Type.String(), Type.Null()]),
   }),
 );
 

@@ -8,5 +8,5 @@ export interface AuthUserPayload {
 
 export type AuthMeResponse = Pick<
   User,
-  'id' | 'email' | 'type' | 'first_name' | 'last_name' | 'created_at'
+  'id' | 'email' | 'type' | 'first_name' | 'last_name' | 'created_at' | 'avatar'
 >;

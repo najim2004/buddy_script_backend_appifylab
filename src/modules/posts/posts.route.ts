@@ -11,6 +11,7 @@ import {
   PostDetailResponseDto,
   PostListResponseDto,
   CommentResponseDto,
+  CommentListResponseDto,
   LikeToggleResponseDto,
   LikeListResponseDto,
   PostVisibilityUpdateResponseDto,
@@ -29,9 +30,11 @@ export const postsRoute = async (fastify: FastifyInstance): Promise<void> => {
   typedFastify.get(
     '/',
     {
+      preHandler: [fastify.authenticate],
       schema: {
         tags: [SWAGGER_TAGS.POSTS],
         summary: 'List posts with cursor pagination',
+        security: [{ bearerAuth: [] }],
         querystring: CursorPaginationQuery,
         response: { 200: PostListResponseDto },
       },
@@ -69,9 +72,11 @@ export const postsRoute = async (fastify: FastifyInstance): Promise<void> => {
   typedFastify.get(
     '/:id',
     {
+      preHandler: [fastify.authenticate],
       schema: {
         tags: [SWAGGER_TAGS.POSTS],
         summary: 'Get post by ID',
+        security: [{ bearerAuth: [] }],
         params: ParamsWithId,
         response: { 200: PostDetailResponseDto },
       },
@@ -177,9 +182,11 @@ export const postsRoute = async (fastify: FastifyInstance): Promise<void> => {
   typedFastify.get(
     '/:id/likes',
     {
+      preHandler: [fastify.authenticate],
       schema: {
         tags: [SWAGGER_TAGS.POSTS],
         summary: 'Get post likes with cursor pagination',
+        security: [{ bearerAuth: [] }],
         params: ParamsWithId,
         querystring: CursorPaginationQuery,
         response: { 200: LikeListResponseDto },
@@ -194,15 +201,36 @@ export const postsRoute = async (fastify: FastifyInstance): Promise<void> => {
   typedFastify.get(
     '/comments/:id/likes',
     {
+      preHandler: [fastify.authenticate],
       schema: {
         tags: [SWAGGER_TAGS.POSTS],
         summary: 'Get comment likes with cursor pagination',
+        security: [{ bearerAuth: [] }],
         params: ParamsWithId,
         querystring: CursorPaginationQuery,
         response: { 200: LikeListResponseDto },
       },
     },
     postsController.getCommentLikes.bind(postsController),
+  );
+
+  // ---------------------------------------------------------------------------
+  // GET /api/posts/:id/comments - List comments for a post
+  // ---------------------------------------------------------------------------
+  typedFastify.get(
+    '/:id/comments',
+    {
+      preHandler: [fastify.authenticate],
+      schema: {
+        tags: [SWAGGER_TAGS.POSTS],
+        summary: 'List comments for a post',
+        security: [{ bearerAuth: [] }],
+        params: ParamsWithId,
+        querystring: CursorPaginationQuery,
+        response: { 200: CommentListResponseDto },
+      },
+    },
+    postsController.getComments.bind(postsController),
   );
 
   // ---------------------------------------------------------------------------

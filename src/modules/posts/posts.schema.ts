@@ -91,16 +91,22 @@ export const PostAttachmentSchema = Type.Object({
   size_bytes: Type.Union([Type.Number(), Type.Null()]),
 });
 
-export const PostLatestCommentSchema = Type.Object({
+export const CommentWithAuthorSchema = Type.Object({
   id: Type.String(),
   created_at: Type.Unsafe<Date | string>({ type: 'string', format: 'date-time' }),
+  post_id: Type.String(),
   content: Type.String(),
   parent_id: Type.Union([Type.String(), Type.Null()]),
   deleted_at: Type.Union([Type.Unsafe<Date | string>({ type: 'string', format: 'date-time' }), Type.Null()]),
   is_deleted: Type.Boolean(),
   likes: Type.Number(),
+  has_liked: Type.Boolean(),
   user: UserWithAvatarSchema,
+  reply_to_user: Type.Union([UserWithAvatarSchema, Type.Null()]),
 });
+
+/** Embedded latest comment matches full comment API responses. */
+export const PostLatestCommentSchema = CommentWithAuthorSchema;
 
 export const PostDetailSchema = Type.Object({
   id: Type.String(),
@@ -144,20 +150,12 @@ export const LikeListResponseDto = Type.Intersect([
   Type.Object({ meta: CursorPaginationMetaSchema }),
 ]);
 
-export const CommentWithAuthorSchema = Type.Object({
-  id: Type.String(),
-  created_at: Type.Unsafe<Date | string>({ type: 'string', format: 'date-time' }),
-  post_id: Type.String(),
-  content: Type.String(),
-  parent_id: Type.Union([Type.String(), Type.Null()]),
-  deleted_at: Type.Union([Type.Unsafe<Date | string>({ type: 'string', format: 'date-time' }), Type.Null()]),
-  is_deleted: Type.Boolean(),
-  likes: Type.Number(),
-  user: UserWithAvatarSchema,
-  reply_to_user: Type.Union([UserWithAvatarSchema, Type.Null()]),
-});
-
 export const CommentResponseDto = createSuccessResponseSchema(CommentWithAuthorSchema);
+
+export const CommentListResponseDto = Type.Intersect([
+  createSuccessResponseSchema(Type.Array(CommentWithAuthorSchema)),
+  Type.Object({ meta: CursorPaginationMetaSchema }),
+]);
 
 export const DeletedCommentResponseDto = createSuccessResponseSchema(
   Type.Object({

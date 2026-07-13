@@ -25,14 +25,21 @@ export type PostAttachment = {
   size_bytes: number | null;
 };
 
-export type PostLatestComment = Pick<
+export type CommentRecord = Pick<
   Comment,
-  'id' | 'created_at' | 'content' | 'parent_id' | 'deleted_at'
-> & {
+  'id' | 'created_at' | 'post_id' | 'content' | 'parent_id' | 'deleted_at'
+>;
+
+export type CommentWithAuthor = CommentRecord & {
   is_deleted: boolean;
   likes: number;
+  has_liked: boolean;
   user: UserWithAvatar;
+  reply_to_user: UserWithAvatar | null;
 };
+
+/** Same shape as full comment responses — keeps list/detail/create aligned. */
+export type PostLatestComment = CommentWithAuthor;
 
 export type PostDetail = Pick<
   Post,
@@ -48,18 +55,6 @@ export type PostDetail = Pick<
 };
 
 export type PostOwner = Pick<Post, 'id' | 'author_id'>;
-
-export type CommentRecord = Pick<
-  Comment,
-  'id' | 'created_at' | 'post_id' | 'content' | 'parent_id' | 'deleted_at'
->;
-
-export type CommentWithAuthor = CommentRecord & {
-  is_deleted: boolean;
-  likes: number;
-  user: UserWithAvatar;
-  reply_to_user: UserWithAvatar | null;
-};
 
 export type LikeWithUser = Pick<
   Like,
