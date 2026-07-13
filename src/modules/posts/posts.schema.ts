@@ -1,6 +1,6 @@
 import { Type, Static } from '@sinclair/typebox';
 import { PostType, PostVisibility } from '../../../prisma/generated/enums';
-import { MultipartFile, StringEnum } from '../../core/utils/schema';
+import { MultipartFile, StringEnum, createSuccessResponseSchema } from '../../core/utils/schema';
 
 export const CreatePostDto = Type.Object({
   content: Type.Optional(Type.String()),
@@ -65,3 +65,121 @@ export const ParamsWithId = Type.Object({
 });
 
 export type ParamsWithIdType = Static<typeof ParamsWithId>;
+
+// ---------------------------------------------------------------------------
+// Response Schemas
+// ---------------------------------------------------------------------------
+
+export const UserWithAvatarSchema = Type.Object({
+  id: Type.String(),
+  first_name: Type.String(),
+  last_name: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+  avatar: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+});
+
+export const PostLikerSchema = Type.Object({
+  id: Type.String(),
+  avatar: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+});
+
+export const PostAttachmentSchema = Type.Object({
+  id: Type.String(),
+  type: Type.String(),
+  file_path: Type.String(),
+  file_name: Type.String(),
+  mime_type: Type.String(),
+  size_bytes: Type.Union([Type.Number(), Type.Null()]),
+  url: Type.String(),
+});
+
+export const PostLatestCommentSchema = Type.Object({
+  id: Type.String(),
+  created_at: Type.Unsafe<Date | string>({ type: 'string', format: 'date-time' }),
+  content: Type.String(),
+  parent_id: Type.Union([Type.String(), Type.Null()]),
+  deleted_at: Type.Union([Type.Unsafe<Date | string>({ type: 'string', format: 'date-time' }), Type.Null()]),
+  is_deleted: Type.Boolean(),
+  likes: Type.Number(),
+  user: UserWithAvatarSchema,
+});
+
+export const PostDetailSchema = Type.Object({
+  id: Type.String(),
+  created_at: Type.Unsafe<Date | string>({ type: 'string', format: 'date-time' }),
+  content: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+  visibility: StringEnum(PostVisibility),
+  status: Type.String(),
+  post_type: StringEnum(PostType),
+  author: UserWithAvatarSchema,
+  attachments: Type.Array(PostAttachmentSchema),
+  comments: Type.Number(),
+  likes: Type.Number(),
+  has_liked: Type.Boolean(),
+  recent_likes: Type.Array(PostLikerSchema),
+  latest_comment: Type.Union([PostLatestCommentSchema, Type.Null()]),
+});
+
+export const CursorPaginationMetaSchema = Type.Object({
+  next_cursor: Type.Union([Type.String(), Type.Null()]),
+  has_next_page: Type.Boolean(),
+});
+
+export const PostDetailResponseDto = createSuccessResponseSchema(PostDetailSchema);
+
+export const PostListResponseDto = Type.Intersect([
+  createSuccessResponseSchema(Type.Array(PostDetailSchema)),
+  Type.Object({ meta: CursorPaginationMetaSchema }),
+]);
+
+export const LikeWithUserSchema = Type.Object({
+  id: Type.String(),
+  created_at: Type.Unsafe<Date | string>({ type: 'string', format: 'date-time' }),
+  user_id: Type.String(),
+  post_id: Type.Union([Type.String(), Type.Null()]),
+  comment_id: Type.Union([Type.String(), Type.Null()]),
+  user: UserWithAvatarSchema,
+});
+
+export const LikeListResponseDto = Type.Intersect([
+  createSuccessResponseSchema(Type.Array(LikeWithUserSchema)),
+  Type.Object({ meta: CursorPaginationMetaSchema }),
+]);
+
+export const CommentWithAuthorSchema = Type.Object({
+  id: Type.String(),
+  created_at: Type.Unsafe<Date | string>({ type: 'string', format: 'date-time' }),
+  post_id: Type.String(),
+  content: Type.String(),
+  parent_id: Type.Union([Type.String(), Type.Null()]),
+  deleted_at: Type.Union([Type.Unsafe<Date | string>({ type: 'string', format: 'date-time' }), Type.Null()]),
+  is_deleted: Type.Boolean(),
+  likes: Type.Number(),
+  user: UserWithAvatarSchema,
+  reply_to_user: Type.Union([UserWithAvatarSchema, Type.Null()]),
+});
+
+export const CommentResponseDto = createSuccessResponseSchema(CommentWithAuthorSchema);
+
+export const DeletedCommentResponseDto = createSuccessResponseSchema(
+  Type.Object({
+    id: Type.String(),
+    soft_deleted: Type.Boolean(),
+    deleted_at: Type.Union([Type.Unsafe<Date | string>({ type: 'string', format: 'date-time' }), Type.Null()]),
+  })
+);
+
+export const LikeToggleResponseDto = createSuccessResponseSchema(
+  Type.Object({
+    liked: Type.Boolean(),
+  })
+);
+
+export const PostVisibilityUpdateResponseDto = createSuccessResponseSchema(
+  Type.Object({
+    id: Type.String(),
+    visibility: StringEnum(PostVisibility),
+    updated_at: Type.Unsafe<Date | string>({ type: 'string', format: 'date-time' }),
+  })
+);
+
+export const BasicSuccessResponseDto = createSuccessResponseSchema(Type.Null());

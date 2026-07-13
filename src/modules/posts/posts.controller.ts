@@ -12,6 +12,9 @@ import {
 } from './posts.schema';
 
 export class PostsController {
+  // ---------------------------------------------------------------------------
+  // POST /api/posts - Create a new post (multipart)
+  // ---------------------------------------------------------------------------
   async createPost(
     request: FastifyRequest,
     reply: FastifyReply,
@@ -40,12 +43,19 @@ export class PostsController {
     reply.send(successResponse(post, 'Post created successfully'));
   }
 
+  // ---------------------------------------------------------------------------
+  // GET /api/posts/:id - Get post by ID
+  // ---------------------------------------------------------------------------
   async getPost(request: FastifyRequest, reply: FastifyReply): Promise<void> {
+    const userId = request.user?.userId;
     const params = request.params as { id: string };
-    const post = await postsService.getPostById(params.id);
+    const post = await postsService.getPostById(params.id, userId);
     reply.send(successResponse(post));
   }
 
+  // ---------------------------------------------------------------------------
+  // PATCH /api/posts/:id - Update a post
+  // ---------------------------------------------------------------------------
   async updatePost(
     request: FastifyRequest,
     reply: FastifyReply,
@@ -57,6 +67,9 @@ export class PostsController {
     reply.send(successResponse(post, 'Post updated successfully'));
   }
 
+  // ---------------------------------------------------------------------------
+  // DELETE /api/posts/:id - Delete a post
+  // ---------------------------------------------------------------------------
   async deletePost(
     request: FastifyRequest,
     reply: FastifyReply,
@@ -67,6 +80,9 @@ export class PostsController {
     reply.send(successResponse(null, 'Post deleted successfully'));
   }
 
+  // ---------------------------------------------------------------------------
+  // PATCH /api/posts/:id/visibility - Update post visibility
+  // ---------------------------------------------------------------------------
   async updateVisibility(
     request: FastifyRequest,
     reply: FastifyReply,
@@ -82,6 +98,9 @@ export class PostsController {
     reply.send(successResponse(post, 'Post visibility updated successfully'));
   }
 
+  // ---------------------------------------------------------------------------
+  // POST /api/posts/:id/like - Toggle like/unlike on a post
+  // ---------------------------------------------------------------------------
   async togglePostLike(
     request: FastifyRequest,
     reply: FastifyReply,
@@ -97,6 +116,9 @@ export class PostsController {
     );
   }
 
+  // ---------------------------------------------------------------------------
+  // POST /api/posts/comments/:id/like - Toggle like/unlike on a comment
+  // ---------------------------------------------------------------------------
   async toggleCommentLike(
     request: FastifyRequest,
     reply: FastifyReply,
@@ -114,6 +136,9 @@ export class PostsController {
     );
   }
 
+  // ---------------------------------------------------------------------------
+  // GET /api/posts/:id/likes - Get post likes with cursor pagination
+  // ---------------------------------------------------------------------------
   async getPostLikes(
     request: FastifyRequest,
     reply: FastifyReply,
@@ -131,6 +156,9 @@ export class PostsController {
     );
   }
 
+  // ---------------------------------------------------------------------------
+  // GET /api/posts/comments/:id/likes - Get comment likes with cursor pagination
+  // ---------------------------------------------------------------------------
   async getCommentLikes(
     request: FastifyRequest,
     reply: FastifyReply,
@@ -148,14 +176,21 @@ export class PostsController {
     );
   }
 
+  // ---------------------------------------------------------------------------
+  // GET /api/posts - List posts with cursor pagination
+  // ---------------------------------------------------------------------------
   async getPosts(request: FastifyRequest, reply: FastifyReply): Promise<void> {
+    const userId = request.user?.userId;
     const query = request.query as CursorPaginationQueryType;
-    const result = await postsService.getPostsList(query.cursor, query.limit);
+    const result = await postsService.getPostsList(query.cursor, query.limit, userId);
     reply.send(
       successResponse(result.data, 'Posts retrieved successfully', result.meta),
     );
   }
 
+  // ---------------------------------------------------------------------------
+  // POST /api/posts/:id/comments - Create a comment or reply on a post
+  // ---------------------------------------------------------------------------
   async createComment(
     request: FastifyRequest,
     reply: FastifyReply,
@@ -167,6 +202,9 @@ export class PostsController {
     reply.send(successResponse(comment, 'Comment created successfully'));
   }
 
+  // ---------------------------------------------------------------------------
+  // DELETE /api/posts/comments/:id - Delete a comment or reply
+  // ---------------------------------------------------------------------------
   async deleteComment(
     request: FastifyRequest,
     reply: FastifyReply,

@@ -41,6 +41,7 @@ export type PostDetail = Pick<
   attachments: PostAttachment[];
   comments: number;
   likes: number;
+  has_liked: boolean;
   recent_likes: PostLiker[];
   latest_comment: PostLatestComment | null;
 };
