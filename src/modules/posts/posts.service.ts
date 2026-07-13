@@ -900,12 +900,75 @@ export class PostsService {
         select: {
           id: true,
           deleted_at: true,
+          parent_id: true,
+          user_id: true,
+          post_id: true,
         },
       });
 
-      if (!parentComment || parentComment.deleted_at) {
+      if (
+        !parentComment ||
+        parentComment.deleted_at ||
+        parentComment.post_id !== postId
+      ) {
         throw new NotFoundError('Parent comment not found');
       }
+
+      // Max 2 levels: replies always hang under the root comment.
+      const rootParentId = parentComment.parent_id ?? parentComment.id;
+      const replyToUserId = data.reply_to_user_id ?? parentComment.user_id;
+
+      const comment = await prisma.comment.create({
+        data: {
+          user_id: userId,
+          post_id: postId,
+          content: data.content,
+          parent_id: rootParentId,
+          reply_to_user_id: replyToUserId,
+        },
+        select: {
+          id: true,
+          created_at: true,
+          post_id: true,
+          content: true,
+          parent_id: true,
+          deleted_at: true,
+          reply_to_user: {
+            select: {
+              id: true,
+              first_name: true,
+              last_name: true,
+              avatar: true,
+            },
+          },
+          user: {
+            select: {
+              id: true,
+              first_name: true,
+              last_name: true,
+              avatar: true,
+            },
+          },
+          _count: {
+            select: { likes: true },
+          },
+        },
+      });
+
+      const is_deleted = comment.deleted_at !== null;
+      return {
+        id: comment.id,
+        created_at: comment.created_at,
+        post_id: comment.post_id,
+        parent_id: comment.parent_id,
+        deleted_at: comment.deleted_at,
+        content: is_deleted ? DELETED_COMMENT_MESSAGE : comment.content,
+        is_deleted,
+        likes: comment._count.likes,
+        has_liked: false,
+        user: comment.user,
+        reply_to_user: comment.reply_to_user,
+      };
     }
 
     const comment = await prisma.comment.create({
@@ -913,8 +976,8 @@ export class PostsService {
         user_id: userId,
         post_id: postId,
         content: data.content,
-        parent_id: data.parent_id,
-        reply_to_user_id: data.reply_to_user_id,
+        parent_id: null,
+        reply_to_user_id: null,
       },
       select: {
         id: true,
