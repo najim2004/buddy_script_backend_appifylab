@@ -25,6 +25,27 @@ import type {
 } from './posts.types';
 import { Prisma } from '../../../prisma/generated/client';
 
+type AttachmentRow = {
+  id: string;
+  type: string | null;
+  file_path: string;
+  file_name: string | null;
+  mime_type: string | null;
+  size_bytes: bigint | number | null;
+};
+
+/** Response attachment — raw storage key in `file_path` (no URL transform). */
+function toAttachmentResponse(att: AttachmentRow) {
+  return {
+    id: att.id,
+    type: att.type ?? 'FILE',
+    file_path: att.file_path,
+    file_name: att.file_name ?? '',
+    mime_type: att.mime_type ?? '',
+    size_bytes: att.size_bytes !== null ? Number(att.size_bytes) : null,
+  };
+}
+
 export class PostsService {
   async createPost(
     authorId: string,
@@ -179,11 +200,7 @@ export class PostsService {
         has_liked: false,
         recent_likes: post.likes.map((like) => like.user),
         latest_comment,
-        attachments: post.attachments.map((att) => ({
-          ...att,
-          size_bytes: att.size_bytes !== null ? Number(att.size_bytes) : null,
-          url: Storage.url(att.file_path),
-        })),
+        attachments: post.attachments.map(toAttachmentResponse),
       };
     } catch (error) {
       await Promise.all(storedFiles.map((f) => Storage.delete(f.file_path)));
@@ -304,11 +321,7 @@ export class PostsService {
       has_liked,
       recent_likes: post.likes.map((like) => like.user),
       latest_comment,
-      attachments: post.attachments.map((att) => ({
-        ...att,
-        size_bytes: att.size_bytes !== null ? Number(att.size_bytes) : null,
-        url: Storage.url(att.file_path),
-      })),
+      attachments: post.attachments.map(toAttachmentResponse),
     };
   }
 
@@ -445,11 +458,7 @@ export class PostsService {
       has_liked,
       recent_likes: updatedPost.likes.map((like) => like.user),
       latest_comment,
-      attachments: updatedPost.attachments.map((att) => ({
-        ...att,
-        size_bytes: att.size_bytes !== null ? Number(att.size_bytes) : null,
-        url: Storage.url(att.file_path),
-      })),
+      attachments: updatedPost.attachments.map(toAttachmentResponse),
     };
   }
 
@@ -774,11 +783,7 @@ export class PostsService {
           has_liked: userLikedPostIds.has(post.id),
           recent_likes: post.likes.map((like) => like.user),
           latest_comment,
-          attachments: post.attachments.map((att) => ({
-            ...att,
-            size_bytes: att.size_bytes !== null ? Number(att.size_bytes) : null,
-            url: Storage.url(att.file_path),
-          })),
+          attachments: post.attachments.map(toAttachmentResponse),
         };
       }),
       meta: {

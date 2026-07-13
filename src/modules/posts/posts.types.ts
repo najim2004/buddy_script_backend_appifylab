@@ -1,5 +1,4 @@
 import type {
-  Attachment,
   Comment,
   Like,
   Post,
@@ -16,12 +15,14 @@ export type UserWithAvatar = Pick<
 /** Latest likers preview on a post (id + avatar only). */
 export type PostLiker = Pick<User, 'id' | 'avatar'>;
 
-export type PostAttachment = Pick<
-  Attachment,
-  'id' | 'type' | 'file_path' | 'file_name' | 'mime_type'
-> & {
+export type PostAttachment = {
+  id: string;
+  type: string;
+  /** Raw storage key (e.g. `posts/abc.jpg`). Frontend resolves via Next proxy. */
+  file_path: string;
+  file_name: string;
+  mime_type: string;
   size_bytes: number | null;
-  url: string;
 };
 
 export type PostLatestComment = Pick<

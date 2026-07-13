@@ -51,6 +51,8 @@ export const createApp = async (): Promise<FastifyInstance> => {
   await app.register(helmet, {
     // Disabled to allow Swagger UI to render inline scripts/styles
     contentSecurityPolicy: false,
+    // Allow frontend (different origin/port) to load /public storage media
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
   });
 
   await app.register(cors, {

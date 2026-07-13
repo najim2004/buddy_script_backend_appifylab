@@ -89,7 +89,6 @@ export const PostAttachmentSchema = Type.Object({
   file_name: Type.String(),
   mime_type: Type.String(),
   size_bytes: Type.Union([Type.Number(), Type.Null()]),
-  url: Type.String(),
 });
 
 export const PostLatestCommentSchema = Type.Object({
