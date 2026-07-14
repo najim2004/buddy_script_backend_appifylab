@@ -26,6 +26,34 @@ import type {
 import { Prisma } from '../../../prisma/generated/client';
 
 export class PostsService {
+  /** PUBLIC → everyone; own posts → author; FRIENDS → allowed list. */
+  private visiblePostWhere(viewerId: string): Prisma.PostWhereInput {
+    return {
+      status: 'ACTIVE',
+      OR: [
+        { visibility: 'PUBLIC' },
+        { author_id: viewerId },
+        {
+          visibility: 'FRIENDS',
+          allowed_friends: { some: { id: viewerId } },
+        },
+      ],
+    };
+  }
+
+  private async ensurePostVisible(postId: string, viewerId: string) {
+    const post = await prisma.post.findFirst({
+      where: { id: postId, ...this.visiblePostWhere(viewerId) },
+      select: { id: true },
+    });
+
+    if (!post) {
+      throw new NotFoundError('Post not found');
+    }
+
+    return post;
+  }
+
   async createPost(
     authorId: string,
     data: CreatePostDtoType,
@@ -209,8 +237,8 @@ export class PostsService {
   }
 
   async getPostById(id: string, currentUserId: string): Promise<PostDetail> {
-    const post = await prisma.post.findUnique({
-      where: { id },
+    const post = await prisma.post.findFirst({
+      where: { id, ...this.visiblePostWhere(currentUserId) },
       select: {
         id: true,
         created_at: true,
@@ -590,24 +618,20 @@ export class PostsService {
     targetId: string,
   ): Promise<{ liked: boolean }> {
     if (targetType === 'post') {
-      const post = await prisma.post.findUnique({
-        where: { id: targetId },
-        select: { id: true },
-      });
-      if (!post) {
-        throw new NotFoundError('Post not found');
-      }
+      await this.ensurePostVisible(targetId, userId);
     } else {
       const comment = await prisma.comment.findUnique({
         where: { id: targetId },
         select: {
           id: true,
           deleted_at: true,
+          post_id: true,
         },
       });
       if (!comment || comment.deleted_at) {
         throw new NotFoundError('Comment not found');
       }
+      await this.ensurePostVisible(comment.post_id, userId);
     }
 
     const existing = await prisma.like.findFirst({
@@ -648,28 +672,25 @@ export class PostsService {
   async getLikesList(
     targetType: 'post' | 'comment',
     targetId: string,
-    cursor?: string,
+    cursor: string | undefined,
     limit = 10,
+    currentUserId: string,
   ): Promise<PaginatedResult<LikeWithUser>> {
     if (targetType === 'post') {
-      const post = await prisma.post.findUnique({
-        where: { id: targetId },
-        select: { id: true },
-      });
-      if (!post) {
-        throw new NotFoundError('Post not found');
-      }
+      await this.ensurePostVisible(targetId, currentUserId);
     } else {
       const comment = await prisma.comment.findUnique({
         where: { id: targetId },
         select: {
           id: true,
           deleted_at: true,
+          post_id: true,
         },
       });
       if (!comment || comment.deleted_at) {
         throw new NotFoundError('Comment not found');
       }
+      await this.ensurePostVisible(comment.post_id, currentUserId);
     }
 
     const take = limit + 1;
@@ -720,7 +741,7 @@ export class PostsService {
     const take = limit + 1;
 
     const posts = await prisma.post.findMany({
-      where: { status: 'ACTIVE' },
+      where: this.visiblePostWhere(currentUserId),
       take,
       cursor: cursor ? { id: cursor } : undefined,
       skip: cursor ? 1 : 0,
@@ -893,14 +914,7 @@ export class PostsService {
     postId: string,
     data: CreateCommentDtoType,
   ): Promise<CommentWithAuthor> {
-    const post = await prisma.post.findUnique({
-      where: { id: postId },
-      select: { id: true },
-    });
-
-    if (!post) {
-      throw new NotFoundError('Post not found');
-    }
+    await this.ensurePostVisible(postId, userId);
 
     let rootParentId: string | null = null;
     let replyToUserId: string | null = null;
@@ -989,14 +1003,7 @@ export class PostsService {
     limit = 20,
     currentUserId: string,
   ): Promise<PaginatedResult<CommentWithAuthor>> {
-    const post = await prisma.post.findUnique({
-      where: { id: postId },
-      select: { id: true },
-    });
-
-    if (!post) {
-      throw new NotFoundError('Post not found');
-    }
+    await this.ensurePostVisible(postId, currentUserId);
 
     const take = limit + 1;
     const comments = await prisma.comment.findMany({

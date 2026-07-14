@@ -122,6 +122,7 @@ export class PostsController {
     request: FastifyRequest,
     reply: FastifyReply,
   ): Promise<void> {
+    const { userId } = request.user;
     const { id } = request.params as { id: string };
     const query = request.query as CursorPaginationQueryType;
     const result = await postsService.getLikesList(
@@ -129,6 +130,7 @@ export class PostsController {
       id,
       query.cursor,
       query.limit,
+      userId,
     );
     reply.send(
       successResponse(result.data, 'Likes retrieved successfully', result.meta),
@@ -139,6 +141,7 @@ export class PostsController {
     request: FastifyRequest,
     reply: FastifyReply,
   ): Promise<void> {
+    const { userId } = request.user;
     const { id } = request.params as { id: string };
     const query = request.query as CursorPaginationQueryType;
     const result = await postsService.getLikesList(
@@ -146,6 +149,7 @@ export class PostsController {
       id,
       query.cursor,
       query.limit,
+      userId,
     );
     reply.send(
       successResponse(result.data, 'Likes retrieved successfully', result.meta),
