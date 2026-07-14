@@ -34,6 +34,7 @@ export type CreatePostMultipartDtoType = Static<typeof CreatePostMultipartDto>;
 
 export const UpdatePostDto = Type.Object({
   content: Type.Optional(Type.String()),
+  visibility: Type.Optional(StringEnum(PostVisibility)),
   post_type: Type.Optional(StringEnum(PostType)),
 });
 

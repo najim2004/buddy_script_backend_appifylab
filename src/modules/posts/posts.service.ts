@@ -405,8 +405,9 @@ export class PostsService {
     const updatedPost = await prisma.post.update({
       where: { id },
       data: {
-        content: data.content,
-        post_type: data.post_type,
+        ...(data.content !== undefined && { content: data.content }),
+        ...(data.visibility !== undefined && { visibility: data.visibility }),
+        ...(data.post_type !== undefined && { post_type: data.post_type }),
       },
       select: {
         id: true,
