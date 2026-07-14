@@ -45,15 +45,14 @@ export const authRoute = async (fastify: FastifyInstance): Promise<void> => {
 
   // ---------------------------------------------------------------------------
   // POST /api/auth/sign-out - Logout user
+  // No authenticate preHandler: expired/invalid sessions must still clear cookies.
   // ---------------------------------------------------------------------------
   fastify.post(
     '/sign-out',
     {
-      preHandler: [fastify.authenticate],
       schema: {
         tags: [SWAGGER_TAGS.AUTH],
         summary: 'Logout user',
-        security: [{ bearerAuth: [] }],
       },
     },
     authController.signOut.bind(authController),
