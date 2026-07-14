@@ -253,32 +253,32 @@ export class PostsService {
           take: 1,
           orderBy: { created_at: 'desc' },
           select: {
-              id: true,
-              created_at: true,
-              post_id: true,
-              content: true,
-              deleted_at: true,
-              parent_id: true,
-              reply_to_user: {
-                select: {
-                  id: true,
-                  first_name: true,
-                  last_name: true,
-                  avatar: true,
-                },
-              },
-              user: {
-                select: {
-                  id: true,
-                  first_name: true,
-                  last_name: true,
-                  avatar: true,
-                },
-              },
-              _count: {
-                select: { likes: true, replies: true },
+            id: true,
+            created_at: true,
+            post_id: true,
+            content: true,
+            deleted_at: true,
+            parent_id: true,
+            reply_to_user: {
+              select: {
+                id: true,
+                first_name: true,
+                last_name: true,
+                avatar: true,
               },
             },
+            user: {
+              select: {
+                id: true,
+                first_name: true,
+                last_name: true,
+                avatar: true,
+              },
+            },
+            _count: {
+              select: { likes: true, replies: true },
+            },
+          },
         },
         _count: {
           select: {
@@ -422,32 +422,32 @@ export class PostsService {
           where: { parent_id: null },
           orderBy: { created_at: 'desc' as const },
           select: {
-              id: true,
-              created_at: true,
-              post_id: true,
-              content: true,
-              deleted_at: true,
-              parent_id: true,
-              reply_to_user: {
-                select: {
-                  id: true,
-                  first_name: true,
-                  last_name: true,
-                  avatar: true,
-                },
-              },
-              user: {
-                select: {
-                  id: true,
-                  first_name: true,
-                  last_name: true,
-                  avatar: true,
-                },
-              },
-              _count: {
-                select: { likes: true, replies: true },
+            id: true,
+            created_at: true,
+            post_id: true,
+            content: true,
+            deleted_at: true,
+            parent_id: true,
+            reply_to_user: {
+              select: {
+                id: true,
+                first_name: true,
+                last_name: true,
+                avatar: true,
               },
             },
+            user: {
+              select: {
+                id: true,
+                first_name: true,
+                last_name: true,
+                avatar: true,
+              },
+            },
+            _count: {
+              select: { likes: true, replies: true },
+            },
+          },
         },
         _count: {
           select: {
@@ -767,32 +767,32 @@ export class PostsService {
           where: { parent_id: null },
           orderBy: { created_at: 'desc' as const },
           select: {
-              id: true,
-              created_at: true,
-              post_id: true,
-              content: true,
-              deleted_at: true,
-              parent_id: true,
-              reply_to_user: {
-                select: {
-                  id: true,
-                  first_name: true,
-                  last_name: true,
-                  avatar: true,
-                },
-              },
-              user: {
-                select: {
-                  id: true,
-                  first_name: true,
-                  last_name: true,
-                  avatar: true,
-                },
-              },
-              _count: {
-                select: { likes: true, replies: true },
+            id: true,
+            created_at: true,
+            post_id: true,
+            content: true,
+            deleted_at: true,
+            parent_id: true,
+            reply_to_user: {
+              select: {
+                id: true,
+                first_name: true,
+                last_name: true,
+                avatar: true,
               },
             },
+            user: {
+              select: {
+                id: true,
+                first_name: true,
+                last_name: true,
+                avatar: true,
+              },
+            },
+            _count: {
+              select: { likes: true, replies: true },
+            },
+          },
         },
         _count: {
           select: {
@@ -902,6 +902,9 @@ export class PostsService {
       throw new NotFoundError('Post not found');
     }
 
+    let rootParentId: string | null = null;
+    let replyToUserId: string | null = null;
+
     if (data.parent_id) {
       const parentComment = await prisma.comment.findUnique({
         where: { id: data.parent_id },
@@ -922,62 +925,8 @@ export class PostsService {
         throw new NotFoundError('Parent comment not found');
       }
 
-      // Max 2 levels: replies always hang under the root comment.
-      const rootParentId = parentComment.parent_id ?? parentComment.id;
-      const replyToUserId = data.reply_to_user_id ?? parentComment.user_id;
-
-      const comment = await prisma.comment.create({
-        data: {
-          user_id: userId,
-          post_id: postId,
-          content: data.content,
-          parent_id: rootParentId,
-          reply_to_user_id: replyToUserId,
-        },
-        select: {
-          id: true,
-          created_at: true,
-          post_id: true,
-          content: true,
-          parent_id: true,
-          deleted_at: true,
-          reply_to_user: {
-            select: {
-              id: true,
-              first_name: true,
-              last_name: true,
-              avatar: true,
-            },
-          },
-          user: {
-            select: {
-              id: true,
-              first_name: true,
-              last_name: true,
-              avatar: true,
-            },
-          },
-          _count: {
-            select: { likes: true, replies: true },
-          },
-        },
-      });
-
-      const is_deleted = comment.deleted_at !== null;
-      return {
-        id: comment.id,
-        created_at: comment.created_at,
-        post_id: comment.post_id,
-        parent_id: comment.parent_id,
-        deleted_at: comment.deleted_at,
-        content: is_deleted ? DELETED_COMMENT_MESSAGE : comment.content,
-        is_deleted,
-        likes: comment._count.likes,
-        replies: comment._count.replies,
-        has_liked: false,
-        user: comment.user,
-        reply_to_user: comment.reply_to_user,
-      };
+      rootParentId = parentComment.parent_id ?? parentComment.id;
+      replyToUserId = data.reply_to_user_id ?? parentComment.user_id;
     }
 
     const comment = await prisma.comment.create({
@@ -985,8 +934,8 @@ export class PostsService {
         user_id: userId,
         post_id: postId,
         content: data.content,
-        parent_id: null,
-        reply_to_user_id: null,
+        parent_id: rootParentId,
+        reply_to_user_id: replyToUserId,
       },
       select: {
         id: true,
@@ -1097,9 +1046,7 @@ export class PostsService {
         },
         select: { comment_id: true },
       });
-      userLikedCommentIds = new Set(
-        likes.map((l) => l.comment_id as string),
-      );
+      userLikedCommentIds = new Set(likes.map((l) => l.comment_id as string));
     }
 
     return {

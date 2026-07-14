@@ -80,7 +80,7 @@ export const createApp = async (): Promise<FastifyInstance> => {
   await app.register(multipart, {
     attachFieldsToBody: true,
     limits: {
-      fileSize: 20 * 1024 * 1024,
+      fileSize: 100 * 1024 * 1024, // Increased to 100MB to support larger videos
       files: 10,
     },
   });
