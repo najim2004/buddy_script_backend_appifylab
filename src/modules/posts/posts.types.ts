@@ -33,6 +33,7 @@ export type CommentRecord = Pick<
 export type CommentWithAuthor = CommentRecord & {
   is_deleted: boolean;
   likes: number;
+  replies: number;
   has_liked: boolean;
   user: UserWithAvatar;
   reply_to_user: UserWithAvatar | null;

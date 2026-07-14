@@ -120,6 +120,7 @@ export class PostsService {
             },
           },
           comments: {
+            where: { parent_id: null },
             take: 1,
             orderBy: { created_at: 'desc' as const },
             select: {
@@ -146,7 +147,7 @@ export class PostsService {
                 },
               },
               _count: {
-                select: { likes: true },
+                select: { likes: true, replies: true },
               },
             },
           },
@@ -172,6 +173,7 @@ export class PostsService {
           parent_id: c.parent_id,
           is_deleted,
           likes: c._count.likes,
+          replies: c._count.replies,
           has_liked: false,
           user: c.user,
           reply_to_user: c.reply_to_user,
@@ -247,6 +249,7 @@ export class PostsService {
           },
         },
         comments: {
+          where: { parent_id: null },
           take: 1,
           orderBy: { created_at: 'desc' },
           select: {
@@ -273,7 +276,7 @@ export class PostsService {
                 },
               },
               _count: {
-                select: { likes: true },
+                select: { likes: true, replies: true },
               },
             },
         },
@@ -319,6 +322,7 @@ export class PostsService {
         parent_id: c.parent_id,
         is_deleted,
         likes: c._count.likes,
+        replies: c._count.replies,
         has_liked: latestCommentLiked,
         user: c.user,
         reply_to_user: c.reply_to_user,
@@ -415,6 +419,7 @@ export class PostsService {
         },
         comments: {
           take: 1,
+          where: { parent_id: null },
           orderBy: { created_at: 'desc' as const },
           select: {
               id: true,
@@ -440,7 +445,7 @@ export class PostsService {
                 },
               },
               _count: {
-                select: { likes: true },
+                select: { likes: true, replies: true },
               },
             },
         },
@@ -482,6 +487,7 @@ export class PostsService {
         parent_id: c.parent_id,
         is_deleted,
         likes: c._count.likes,
+        replies: c._count.replies,
         has_liked: latestCommentLiked,
         user: c.user,
         reply_to_user: c.reply_to_user,
@@ -758,6 +764,7 @@ export class PostsService {
         },
         comments: {
           take: 1,
+          where: { parent_id: null },
           orderBy: { created_at: 'desc' as const },
           select: {
               id: true,
@@ -783,7 +790,7 @@ export class PostsService {
                 },
               },
               _count: {
-                select: { likes: true },
+                select: { likes: true, replies: true },
               },
             },
         },
@@ -844,6 +851,7 @@ export class PostsService {
             parent_id: c.parent_id,
             is_deleted,
             likes: c._count.likes,
+            replies: c._count.replies,
             has_liked: userLikedCommentIds.has(c.id),
             user: c.user,
             reply_to_user: c.reply_to_user,
@@ -950,7 +958,7 @@ export class PostsService {
             },
           },
           _count: {
-            select: { likes: true },
+            select: { likes: true, replies: true },
           },
         },
       });
@@ -965,6 +973,7 @@ export class PostsService {
         content: is_deleted ? DELETED_COMMENT_MESSAGE : comment.content,
         is_deleted,
         likes: comment._count.likes,
+        replies: comment._count.replies,
         has_liked: false,
         user: comment.user,
         reply_to_user: comment.reply_to_user,
@@ -1003,7 +1012,7 @@ export class PostsService {
           },
         },
         _count: {
-          select: { likes: true },
+          select: { likes: true, replies: true },
         },
       },
     });
@@ -1018,6 +1027,7 @@ export class PostsService {
       content: is_deleted ? DELETED_COMMENT_MESSAGE : comment.content,
       is_deleted,
       likes: comment._count.likes,
+      replies: comment._count.replies,
       has_liked: false,
       user: comment.user,
       reply_to_user: comment.reply_to_user,
@@ -1070,7 +1080,7 @@ export class PostsService {
           },
         },
         _count: {
-          select: { likes: true },
+          select: { likes: true, replies: true },
         },
       },
     });
@@ -1104,6 +1114,7 @@ export class PostsService {
           content: is_deleted ? DELETED_COMMENT_MESSAGE : comment.content,
           is_deleted,
           likes: comment._count.likes,
+          replies: comment._count.replies,
           has_liked: userLikedCommentIds.has(comment.id),
           user: comment.user,
           reply_to_user: comment.reply_to_user,

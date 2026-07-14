@@ -100,6 +100,7 @@ export const CommentWithAuthorSchema = Type.Object({
   deleted_at: Type.Union([Type.Unsafe<Date | string>({ type: 'string', format: 'date-time' }), Type.Null()]),
   is_deleted: Type.Boolean(),
   likes: Type.Number(),
+  replies: Type.Number(),
   has_liked: Type.Boolean(),
   user: UserWithAvatarSchema,
   reply_to_user: Type.Union([UserWithAvatarSchema, Type.Null()]),
