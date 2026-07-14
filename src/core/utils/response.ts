@@ -51,10 +51,10 @@ export function successResponse<T>(
 ): ApiSuccessResponse<T> {
   return {
     success: true,
-    ...(data !== undefined && data !== null && { data }),
+    data,
     ...(message && { message }),
     ...(meta && { meta }),
-  } as ApiSuccessResponse<T>;
+  };
 }
 
 /**
