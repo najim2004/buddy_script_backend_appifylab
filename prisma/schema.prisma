@@ -207,7 +207,7 @@ model Post {
   allowed_friends User[]    @relation("VisibilityAllowedFriends")
 
   @@index([author_id])
-  @@map("community_posts")
+  @@map("posts")
 }
 
 model Like {
@@ -222,8 +222,8 @@ model Like {
   post    Post?    @relation(fields: [post_id], references: [id], onDelete: Cascade)
   comment Comment? @relation(fields: [comment_id], references: [id], onDelete: Cascade)
 
-  @@index([user_id, post_id], map: "community_likes_user_post_idx")
-  @@map("community_likes")
+  @@index([user_id, post_id], map: "likes_user_post_idx")
+  @@map("likes")
 }
 
 model Comment {
@@ -248,7 +248,7 @@ model Comment {
   reply_to_user User?     @relation("CommentReplyToUser", fields: [reply_to_user_id], references: [id], onDelete: SetNull)
 
   @@index([user_id, post_id, deleted_at], map: "comment_user_post_deleted_at_idx")
-  @@map("community_comments")
+  @@map("comments")
 }
 
 model Role {
